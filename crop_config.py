@@ -9,19 +9,19 @@ Adjust these values to fine-tune the auto-detected crop region
 # X offset from Reset button
 # Negative value = move LEFT from Reset button
 # Positive value = move RIGHT from Reset button
-OFFSET_X = -176
+OFFSET_X = -76
 
 # Y offset from Reset button (always positive, moves UP)
 # This is how many pixels ABOVE the Reset button to start the crop
-OFFSET_ABOVE = 373
+OFFSET_ABOVE = 388
 
 # Width of the crop region (in pixels)
 # Should be wide enough to capture stat lines like "Attack Power +xx"
-STAT_WIDTH = 335
+STAT_WIDTH = 284
 
 # Height of the crop region (in pixels)
 # Fixed height for the crop region
-STAT_HEIGHT = 95
+STAT_HEIGHT = 107
 
 # Bright cube offsets (different from Glowing cube)
 # For Bright cube, potential lines are under "AFTER" text

@@ -73,15 +73,15 @@ double_lines_list = ['Attacks ignore 30% Monster', 'Attacks ignore 35% Monster',
 # Stat dictionaries - common OCR patterns for stat lines
 # These patterns account for OCR variations like "STR: +9%" or "STR +9%" or "STR:+9%"
 stat_patterns = {
-    "STR": [r'STR\s*:?\s*\+(\d+)%', r'STR\s*\+(\d+)%'],
-    "DEX": [r'DEX\s*:?\s*\+(\d+)%', r'DEX\s*\+(\d+)%'],
-    "INT": [r'INT\s*:?\s*\+(\d+)%', r'INT\s*\+(\d+)%'],
-    "LUK": [r'LUK\s*:?\s*\+(\d+)%', r'LUK\s*\+(\d+)%'],
-    "ALL": [r'All\s+Stats\s*:?\s*\+(\d+)%', r'All\s+Stats\s*\+(\d+)%', r'All\s*:?\s*\+(\d+)%', r'Allstats\s*:?\s*\+(\d+)%', r'Allstats\s*\+(\d+)%', r'Alistats\s*:?\s*\+(\d+)%', r'Alistats\s*\+(\d+)%', r'Alstats\s*:?\s*\+(\d+)%', r'Alstats\s*\+(\d+)%'],
-    "ATT": [r'(?<!Magic\s)ATT\s*:?\s*\+(\d+)%', r'(?<!Magic\s)ATT\s*\+(\d+)%', r'Attack\s+Power\s*:?\s*\+(\d+)%', r'Attack\s+Power\s*\+(\d+)%'],
-    "MATT": [r'Magic\s+ATT\s*:?\s*\+(\d+)%', r'Magic\s+ATT\s*\+(\d+)%'],
-    "BD": [r'Boss\s+Damage\s*:?\s*\+(\d+)%', r'Boss\s+Damage\s*\+(\d+)%'],
-    "IED": [r'Ignore\s+Defense\s*:?\s*\+(\d+)%', r'Ignore\s+Defense\s*\+(\d+)%', r'Attacks\s+ignore\s+(\d+)%\s+Monster(?:\s+Defense)?']
+    "STR": [r'STR\s*:?\s*\+?(\d+)%', r'STR\s*\+(\d+)%'],  # Added optional + for missing + cases
+    "DEX": [r'DEX\s*:?\s*\+?(\d+)%', r'DEX\s*\+(\d+)%'],
+    "INT": [r'INT\s*:?\s*\+?(\d+)%', r'INT\s*\+(\d+)%'],
+    "LUK": [r'LUK\s*:?\s*\+?(\d+)%', r'LUK\s*\+(\d+)%'],  # Added optional + for missing + cases
+    "ALL": [r'All\s+Stats\s*:?\s*\+?(\d+)%', r'All\s+Stats\s*\+(\d+)%', r'All\s*:?\s*\+?(\d+)%', r'Allstats\s*:?\s*\+?(\d+)%', r'Allstats\s*\+(\d+)%', r'Alistats\s*:?\s*\+?(\d+)%', r'Alistats\s*\+(\d+)%', r'Alstats\s*:?\s*\+?(\d+)%', r'Alstats\s*\+(\d+)%'],
+    "ATT": [r'(?<!Magic\s)ATT\s*:?\s*\+?(\d+)%', r'(?<!Magic\s)ATT\s*\+(\d+)%', r'Attack\s+Power\s*:?\s*\+?(\d+)%', r'Attack\s+Power\s*\+(\d+)%'],
+    "MATT": [r'Magic\s+ATT\s*:?\s*\+?(\d+)%', r'Magic\s+ATT\s*\+(\d+)%'],
+    "BD": [r'Boss\s+Damage\s*:?\s*\+?(\d+)%', r'Boss\s+Damage\s*\+(\d+)%'],
+    "IED": [r'Ignore\s+Defense\s*:?\s*\+?(\d+)%', r'Ignore\s+Defense\s*\+(\d+)%', r'Attacks\s+ignore\s+(\d+)%\s+Monster(?:\s+Defense)?']
 }
 def get_lines(window_name=None, debug=False, crop_region=None, test_image_path=None, auto_detect_crop=False, cube_type="Glowing"):
     try:
@@ -162,6 +162,119 @@ def fix_ocr_percent_errors(line):
     
     return fixed
 
+def fix_missing_plus_sign(line):
+    """
+    Fix OCR errors where '+' sign is missing before percentages.
+    Example: 'LUK 12%' -> 'LUK +12%', 'B LUK 12%' -> 'LUK +12%'
+    Handles stat names: STR, DEX, INT, LUK, ALL/All Stats, ATT/Attack Power, etc.
+    """
+    if not line:
+        return line
+    
+    import re
+    
+    # Pattern to match stat names followed by optional colon/space, then digits and %
+    # This will match: "LUK 12%", "LUK: 12%", "STR 9%", "All Stats 6%", etc.
+    # Also handles noise before stat name: "B LUK 12%" -> "LUK +12%"
+    
+    # Stat name patterns (case-insensitive) - order matters (longer patterns first)
+    stat_patterns = [
+        (r'(All\s+Stats?|Allstats?|Alistats?|Alstats?)', 'ALL'),  # All stats variations
+        (r'(Magic\s+ATT)', 'MATT'),  # Magic ATT
+        (r'(Attack\s+Power)', 'ATT'),  # Attack Power (full)
+        (r'(Boss\s+Damage)', 'BD'),  # Boss Damage
+        (r'(Ignore\s+Defense)', 'IED'),  # Ignore Defense
+        (r'(Critical\s+Damage)', 'CD'),  # Critical Damage
+        (r'(STR|DEX|INT|LUK)', 'STAT'),  # Single stat
+        (r'(ATT)', 'ATT'),  # ATT (short)
+    ]
+    
+    # Try to find and fix missing + signs
+    for stat_pattern, stat_type in stat_patterns:
+        # Pattern: optional text before, stat name, optional colon, optional space, digits, %
+        # But NOT if there's already a + sign before the digits
+        # This matches: "LUK 12%", "B LUK 12%", "LUK: 12%", etc.
+        pattern = rf'([A-Za-z\s]*?)({stat_pattern})\s*:?\s+(?!\+)(\d+)%'
+        
+        def add_plus(match):
+            # match.group(1) = text before stat (might be noise like "B " or "Alstats ")
+            # match.group(2) = stat name
+            # match.group(3) = number
+            before = match.group(1).strip()
+            stat = match.group(2)
+            number = match.group(3)
+            
+            # Check if text before is likely noise
+            # Noise indicators:
+            # 1. Single character that's not a known stat prefix
+            # 2. Text that doesn't match known stat patterns
+            is_noise = False
+            if before:
+                before_clean = before.strip()
+                # Single character before stat is likely noise (e.g., "B" before "LUK")
+                if len(before_clean) == 1:
+                    is_noise = True
+                # Check if before text is part of a known stat pattern (like "Al" from "Alstats")
+                elif stat_type == 'ALL' and before_clean.lower() in ['al', 'all']:
+                    # This is part of "Allstats" or similar, keep it
+                    is_noise = False
+                elif before_clean.lower() in ['str', 'dex', 'int', 'luk', 'att', 'all']:
+                    # This is a stat name, not noise
+                    is_noise = False
+                else:
+                    # Unknown text, likely noise
+                    is_noise = True
+            
+            if is_noise:
+                # Remove noise and add +
+                return f"{stat} +{number}%"
+            else:
+                # Keep the text before, but add + before number
+                return f"{before} {stat} +{number}%" if before else f"{stat} +{number}%"
+        
+        line = re.sub(pattern, add_plus, line, flags=re.IGNORECASE)
+    
+    return line
+
+def fix_missing_numbers(line):
+    """
+    Fix OCR errors where numbers are missing in stat lines.
+    Example: 'Luk +Luk%' -> 'LUK +9%', 'STR +STR%' -> 'STR +9%'
+    This handles cases where OCR reads the stat name instead of the number.
+    """
+    if not line:
+        return line
+    
+    import re
+    
+    # Pattern to match stat name followed by + and then the stat name again (missing number)
+    # Examples: "Luk +Luk%", "STR +STR%", "LUK +LUK%", "Luk+Luk%"
+    # Match case-insensitively and handle both stat names being the same
+    stat_pattern = r'\b(STR|DEX|INT|LUK|ATT|Luk|Str|Dex|Int|Att)\s*\+?\s*\1\s*%'
+    
+    def replace_missing_number(match):
+        stat_name = match.group(1).upper()
+        # Try to infer the number - use most common value (9)
+        # Common stat values: 3, 4, 6, 7, 9, 10, 12, 15, 18, 21, 30, 35, 40, 45, 50
+        # 9 is the most common for single-line stats
+        inferred_value = 9  # Default to most common
+        
+        return f"{stat_name} +{inferred_value}%"
+    
+    # Apply the fix (case-insensitive)
+    line = re.sub(stat_pattern, replace_missing_number, line, flags=re.IGNORECASE)
+    
+    # Also handle cases where stat name is repeated with % but no number and no +
+    # Pattern: "LUK LUK%" or "STR STR%" (without +)
+    repeated_stat_pattern = r'\b(STR|DEX|INT|LUK|ATT|Luk|Str|Dex|Int|Att)\s+\1\s*%'
+    def fix_repeated_stat(match):
+        stat_name = match.group(1).upper()
+        return f"{stat_name} +9%"  # Use default value
+    
+    line = re.sub(repeated_stat_pattern, fix_repeated_stat, line, flags=re.IGNORECASE)
+    
+    return line
+
 def normalize_line(line):
     """
     Normalize OCR line by removing leading noise characters and extra whitespace.
@@ -175,6 +288,12 @@ def normalize_line(line):
     
     # First fix OCR percent errors (e.g., +95 -> +9%)
     line = fix_ocr_percent_errors(line)
+    
+    # Fix missing numbers in stat lines (e.g., "Luk +Luk%" -> "LUK +9%")
+    line = fix_missing_numbers(line)
+    
+    # Fix missing + signs before percentages (e.g., "LUK 12%" -> "LUK +12%")
+    line = fix_missing_plus_sign(line)
     
     # Remove leading single non-alphanumeric characters that are likely OCR noise
     # Common OCR noise: @, ©, G, and other symbols

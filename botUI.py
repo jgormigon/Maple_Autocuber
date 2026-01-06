@@ -78,11 +78,13 @@ class BotGUI:
             print(f"Error getting windows: {e}")
             available_windows = ["Maplestory"]  # Fallback
         
-        # Set default if Maplestory exists, otherwise use first window
+        # Always default to "Maplestory" if it exists, otherwise add it to the list and use it
         if "Maplestory" in available_windows:
             self.selected_window.set("Maplestory")
-        elif available_windows:
-            self.selected_window.set(available_windows[0])
+        else:
+            # Add Maplestory to the list and set it as default
+            available_windows.insert(0, "Maplestory")
+            self.selected_window.set("Maplestory")
         
         # Dropdown
         self.window_dropdown = ttk.Combobox(dropdown_frame, textvariable=self.selected_window, 
@@ -108,14 +110,13 @@ class BotGUI:
             if not available_windows:
                 available_windows = ["Maplestory"]
             
-            current_selection = self.selected_window.get()
-            self.window_dropdown['values'] = available_windows
+            # Always include "Maplestory" in the list if it's not there
+            if "Maplestory" not in available_windows:
+                available_windows.insert(0, "Maplestory")
             
-            # Try to keep current selection, or select first if not available
-            if current_selection in available_windows:
-                self.selected_window.set(current_selection)
-            elif available_windows:
-                self.selected_window.set(available_windows[0])
+            self.window_dropdown['values'] = available_windows
+            # Default to Maplestory
+            self.selected_window.set("Maplestory")
             
             self.window_status.config(text=f"Found {len(available_windows)} window(s)", fg="green")
         except Exception as e:
@@ -156,10 +157,53 @@ class BotGUI:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
-        # Bind mousewheel to canvas
+        # Bind mousewheel to canvas and scrollable frame
         def on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        canvas.bind_all("<MouseWheel>", on_mousewheel)
+            # Check if event is from canvas area or its children
+            # Windows/Mac: event.delta is positive (scroll up) or negative (scroll down)
+            # Linux: event.num is 4 (scroll up) or 5 (scroll down)
+            if hasattr(event, 'delta'):
+                # Windows/Mac
+                if event.delta > 0:
+                    canvas.yview_scroll(-1, "units")
+                elif event.delta < 0:
+                    canvas.yview_scroll(1, "units")
+            elif hasattr(event, 'num'):
+                # Linux
+                if event.num == 4:
+                    canvas.yview_scroll(-1, "units")
+                elif event.num == 5:
+                    canvas.yview_scroll(1, "units")
+            return "break"  # Prevent event propagation
+        
+        def bind_mousewheel_recursive(widget):
+            """Recursively bind mousewheel to widget and all its children"""
+            # Skip Text widgets - they handle their own scrolling
+            if isinstance(widget, Text):
+                return
+            
+            # Windows/Mac
+            widget.bind("<MouseWheel>", on_mousewheel)
+            # Linux
+            widget.bind("<Button-4>", on_mousewheel)
+            widget.bind("<Button-5>", on_mousewheel)
+            
+            # Bind to all current children
+            for child in widget.winfo_children():
+                bind_mousewheel_recursive(child)
+        
+        # Bind to canvas (covers entire scrollable area)
+        bind_mousewheel_recursive(canvas)
+        
+        # Bind to scrollable frame and all its children
+        bind_mousewheel_recursive(scrollable_frame)
+        
+        # Also bind to container
+        bind_mousewheel_recursive(container)
+        
+        # Store canvas reference for later binding when new widgets are added
+        scrollable_frame._canvas = canvas
+        scrollable_frame._bind_mousewheel = lambda: bind_mousewheel_recursive(scrollable_frame)
         
         return scrollable_frame
     
@@ -227,6 +271,10 @@ class BotGUI:
         Checkbutton(stat_types_frame, text="INT", variable=self.int_check).pack(anchor=W)
         Checkbutton(stat_types_frame, text="LUK", variable=self.luk_check).pack(anchor=W)
         Checkbutton(stat_types_frame, text="ALL Stats", variable=self.all_check).pack(anchor=W)
+        
+        # Re-bind mousewheel after all widgets are added to ensure scrolling works everywhere
+        if hasattr(scrollable_frame, '_bind_mousewheel'):
+            scrollable_frame._bind_mousewheel()
     
     def create_roll_tab(self, parent):
         # Create scrollable frame
@@ -387,8 +435,9 @@ class BotGUI:
         """Build configuration dictionary from GUI values"""
         config = {}
         
-        # Window name
-        config["window_name"] = self.selected_window.get()
+        # Window name - default to "Maplestory" if empty
+        window_name = self.selected_window.get()
+        config["window_name"] = window_name if window_name else "Maplestory"
         
         # Cube type
         config["cube_type"] = self.cube_type.get()

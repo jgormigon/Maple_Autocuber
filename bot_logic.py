@@ -1,5 +1,5 @@
 from translate_ocr_results import process_lines, get_stat_from_line, extract_stat_value, get_potlines, matches_line_pattern
-from macro_controls import time_to_start , click, click_reset_button
+from macro_controls import time_to_start , click, press_reset_spacebar
 import keyboard
 import time
 import threading
@@ -55,7 +55,7 @@ class potential:
                 pass
 
     def get_lines(self):
-        window_name = config.get("window_name")
+        window_name = config.get("window_name", "Maplestory")
         crop_region = config.get("crop_region", None)
         test_image_path = config.get("test_image_path", None)
         auto_detect_crop = config.get("auto_detect_crop", False)
@@ -103,6 +103,48 @@ class potential:
             stats["LUK"] += all_value
         
         return stats
+    
+    def _normalize_lines_for_comparison(self):
+        """
+        Normalize lines for comparison by removing OCR variations.
+        Removes colons, normalizes spacing, handles case differences, fixes common OCR errors.
+        Returns tuple of normalized (line1, line2, line3)
+        """
+        import re
+        
+        def normalize(line):
+            if not line or line == "Trash":
+                return "Trash"
+            
+            # Convert to uppercase for case-insensitive comparison
+            line = line.upper()
+            
+            # Remove colons (DEX:+12% vs DEX+12%)
+            line = re.sub(r':\s*', '', line)
+            
+            # Normalize spacing around + and %
+            line = re.sub(r'\s*\+\s*', '+', line)
+            line = re.sub(r'\s*%\s*', '%', line)
+            
+            # Fix common OCR errors that don't affect meaning
+            # "DAMAGE" vs "DAMAGE" - normalize common misspellings
+            line = re.sub(r'DAMAU?E', 'DAMAGE', line)  # "DAMAGE" or "DAMAGE" -> "DAMAGE"
+            line = re.sub(r'EFFCIENCY', 'EFFICIENCY', line)  # "EFFCIENCY" -> "EFFICIENCY"
+            line = re.sub(r'CHANCETO', 'CHANCE TO', line)  # Normalize spacing
+            line = re.sub(r'REFLECT', 'REFLECT', line)  # Keep as is
+            line = re.sub(r'HPRECOVERY', 'HP RECOVERY', line)  # Normalize spacing
+            line = re.sub(r'ITEMSAND', 'ITEMS AND', line)  # Normalize spacing
+            line = re.sub(r'SKILLS', 'SKILLS', line)  # Keep as is
+            
+            # Remove extra whitespace
+            line = ' '.join(line.split())
+            
+            # Remove any remaining single-character noise at start
+            line = re.sub(r'^[^A-Z0-9]\s*', '', line)
+            
+            return line
+        
+        return (normalize(self.line1), normalize(self.line2), normalize(self.line3))
     
     def get_total_stats_string(self):
         """
@@ -613,7 +655,7 @@ class potential:
         time_to_start(bot_stop_event)
         
         # Cache config values to avoid repeated lookups in loop
-        window_name = config.get("window_name")
+        window_name = config.get("window_name", "Maplestory")
         auto_detect_crop = config.get("auto_detect_crop", False)
         
         while self.stop_bot == False and keyboard.is_pressed('q') == False and not bot_stop_event.is_set():
@@ -622,20 +664,8 @@ class potential:
                 self._send_ocr_result("Bot stopped by user")
                 break
             
-            # Perform click action - try to click Reset button if available
-            reset_clicked = False
-            
-            # Try to get potlines instance and click Reset button
-            try:
-                potlines_instance = get_potlines(window_name=window_name, auto_detect_crop=auto_detect_crop)
-                if potlines_instance and hasattr(potlines_instance, 'reset_button_pos') and potlines_instance.reset_button_pos:
-                    reset_clicked = click_reset_button(window_name, potlines_instance.reset_button_pos)
-            except Exception as e:
-                reset_clicked = False
-            
-            # Fallback to generic click if Reset button click failed
-            if not reset_clicked:
-                click()
+            # Press spacebar to reset (replaces clicking Reset button)
+            press_reset_spacebar()
             
             # Check immediately after click (before any sleep)
             if bot_stop_event.is_set():
@@ -659,14 +689,29 @@ class potential:
             self.get_lines()
             
             # Check if cubes are used up (same stats 3 times in a row)
-            current_roll = (self.line1, self.line2, self.line3)
+            # Compare based on extracted stats, not raw text, to handle OCR variations
+            current_stats = self.get_stat_values()
+            # Also normalize lines for comparison (remove OCR noise like colons, spacing)
+            normalized_lines = self._normalize_lines_for_comparison()
+            current_roll = (normalized_lines, current_stats)
+            
             self.last_three_rolls.append(current_roll)
             if len(self.last_three_rolls) > 3:
                 self.last_three_rolls.pop(0)  # Keep only last 3
             
             # If we have 3 rolls and they're all the same, cubes are used up
+            # Compare both normalized lines and stats for robustness
             if len(self.last_three_rolls) == 3:
-                if (self.last_three_rolls[0] == self.last_three_rolls[1] == self.last_three_rolls[2]):
+                roll1_lines, roll1_stats = self.last_three_rolls[0]
+                roll2_lines, roll2_stats = self.last_three_rolls[1]
+                roll3_lines, roll3_stats = self.last_three_rolls[2]
+                
+                # Check if stats are the same (primary check - most reliable)
+                stats_match = (roll1_stats == roll2_stats == roll3_stats)
+                # Also check if normalized lines are similar (secondary check)
+                lines_match = (roll1_lines == roll2_lines == roll3_lines)
+                
+                if stats_match or lines_match:
                     self.stop_bot = True
                     lines_str = f"{self.line1}, {self.line2}"
                     if self.line3 and self.line3 != "Trash":

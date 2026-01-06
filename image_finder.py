@@ -181,8 +181,8 @@ class potlines:
     
     def get_ocr_result(self, debug=False, processing_method='adaptive'):
         # Try multiple processing methods - start with simplest first
-        # Order: simple (no processing) -> adaptive -> fixed -> original
-        methods_to_try = ['simple', 'adaptive', 'fixed', 'original']
+        # Order: simple (no processing) -> adaptive -> numbers (for better number recognition) -> fixed -> original
+        methods_to_try = ['simple', 'adaptive', 'numbers', 'fixed', 'original']
         if processing_method and processing_method not in methods_to_try:
             methods_to_try.insert(0, processing_method)
         elif processing_method:
@@ -273,8 +273,26 @@ class potlines:
             # Convert to grayscale only
             raw_gray = cv.cvtColor(raw_screenshot, cv.COLOR_BGR2GRAY)
             
-            # Try OCR on raw image (fastest method - works well for this use case)
-            raw_result = pytesseract.image_to_string(raw_gray, config='--psm 6')
+            # Try OCR on raw image with multiple configs for better number recognition
+            raw_result = ""
+            raw_configs = [
+                ('--psm 6 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+%: ', 'raw with whitelist'),
+                ('--psm 6', 'raw standard'),
+                ('--psm 7 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+%: ', 'raw single line'),
+            ]
+            for config, desc in raw_configs:
+                try:
+                    test_result = pytesseract.image_to_string(raw_gray, config=config)
+                    if test_result and len(test_result.strip()) > len(raw_result.strip()):
+                        raw_result = test_result
+                        if debug:
+                            print(f"[DEBUG] Raw OCR with {desc}: {repr(test_result[:50])}")
+                        if len(raw_result.strip()) > 2:
+                            break
+                except Exception as e:
+                    if debug:
+                        print(f"[DEBUG] Error with {desc}: {e}")
+                    continue
             if raw_result and len(raw_result.strip()) > 2:
                 if debug:
                     print(f"[DEBUG] Success with raw image: {repr(raw_result[:100])}")
@@ -296,9 +314,12 @@ class potlines:
                 
                 # Try OCR with optimized configuration (fewer PSM modes for speed)
                 # PSM 6 works best for this use case (uniform block of text)
+                # Add configs that prioritize number recognition
                 psm_configs = [
+                    ('--psm 6 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+%: ', 'uniform block with whitelist'),  # Best for this use case with number focus
                     ('--psm 6', 'uniform block'),  # Best for this use case
                     ('--psm 11', 'sparse text'),   # Fallback if PSM 6 fails
+                    ('--psm 7 -c tessedit_char_whitelist=0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+%: ', 'single line with whitelist'),  # Single line with number focus
                 ]
                 
                 result = ""

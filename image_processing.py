@@ -46,6 +46,26 @@ def enhance_contrast(image):
     clahe = cv.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
     return clahe.apply(image)
 
+def sharpen_image(image):
+    """Sharpen image to improve number recognition"""
+    kernel = np.array([[-1,-1,-1],
+                       [-1, 9,-1],
+                       [-1,-1,-1]])
+    sharpened = cv.filter2D(image, -1, kernel)
+    return sharpened
+
+def enhance_for_numbers(image):
+    """Enhanced preprocessing specifically for number recognition"""
+    # Apply CLAHE for contrast
+    enhanced = enhance_contrast(image)
+    # Apply sharpening to make numbers clearer
+    sharpened = sharpen_image(enhanced)
+    # Apply adaptive threshold
+    thresholded = adjust_threshold_adaptive(sharpened)
+    # Scale up for better OCR
+    scaled = adjust_scale(thresholded)
+    return scaled
+
 def image_process(image, method='adaptive'):
     """
     Process image for OCR with multiple methods.
@@ -86,6 +106,10 @@ def image_process(image, method='adaptive'):
         adaptive = adjust_threshold_adaptive(enhanced)
         scaled = adjust_scale(adaptive)
         return scaled
+    
+    elif method == 'numbers':
+        # Special method optimized for number recognition
+        return enhance_for_numbers(gray)
     
     else:
         # Default: adaptive
