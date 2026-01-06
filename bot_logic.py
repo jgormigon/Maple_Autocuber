@@ -1,84 +1,557 @@
-from translate_ocr_results import process_lines
-from macro_controls import time_to_start , click
+from translate_ocr_results import process_lines, get_stat_from_line, extract_stat_value, get_potlines, matches_line_pattern
+from macro_controls import time_to_start , click, click_reset_button
 import keyboard
 import time
+import threading
 #single_lines_dict = {"BD":['Boss Damage: +30%', 'Boss Damage: +35%', 'Boss Damage: +40%', 'Boss Damage: +45%', 'Boss Damage: +50%'],"IA":['Item Acquisition Rate: +12%','Item Acquisition Rate: +10%','tem Acquisition Rate: +12%','tem Acquisition Rate: +10%'],"CD":['Critical Damage: +6%', 'Critical Damage: +3%'],"ATT":['ATT: +9%','ATT: +6%'],"MATT":['Magic ATT: +6%','Magic ATT: +9%']}
-single_lines_dict = {"BD":['Boss Damage: +35%', 'Boss Damage: +40%', 'Boss Damage: +45%', 'Boss Damage: +50%'],"IA":['Item Acquisition Rate: +12%','Item Acquisition Rate: +10%','tem Acquisition Rate: +12%','tem Acquisition Rate: +10%'],"CD":['Critical Damage: +6%', 'Critical Damage: +3%'],"ATT":['ATT: +9%','ATT: +6%'],"MATT":['Magic ATT: +6%','Magic ATT: +9%']}
+single_lines_dict = {"BD":['Boss Damage: +35%', 'Boss Damage: +40%', 'Boss Damage: +45%', 'Boss Damage: +50%'],"IA":['Item Acquisition Rate: +12%','Item Acquisition Rate: +10%','tem Acquisition Rate: +12%','tem Acquisition Rate: +10%'],"CD":['Critical Damage: +6%', 'Critical Damage: +3%'],"ATT":['ATT: +3%','ATT: +4%','ATT: +6%','ATT: +7%','ATT: +9%','ATT: +10%', 'Attack Power: +3%', 'Attack Power: +4%', 'Attack Power: +6%', 'Attack Power: +7%', 'Attack Power: +9%', 'Attack Power: +10%', 'Attack Power +3%', 'Attack Power +4%', 'Attack Power +6%', 'Attack Power +7%', 'Attack Power +9%', 'Attack Power +10%'],"MATT":['Magic ATT: +6%','Magic ATT: +9%']}
 double_lines_dict = {"IED":['Attacks ignore 30% Monster', 'Attacks ignore 35% Monster', 'Attacks ignore 40% Monster', 'Attacks ignore 45% Monster', 'Attacks ignore 50% Monster'],'Drop':['Increases Item Drop Rate by a'],'MnD':['Increases tem and Meso Drop']}
+
+# Default configuration - will be overridden by GUI
+default_config = {
+    "window_name": "Maplestory",  # Default window name
+    "crop_region": None,  # Crop region as (x, y, width, height) percentages (0.0-1.0) or pixels
+                           # Example: (0.35, 0.45, 0.3, 0.25) = center region
+                           # Set to None to use full window
+    "cube_type": "Glowing",  # "Glowing" or "Bright"
+    "STRcheck": False,
+    "DEXcheck": False,
+    "INTcheck": False,
+    "LUKcheck": False,
+    "ALLcheck": False,
+    "statThreshold": 21,
+    "stopAtStatThreshold": False,
+    "flexible_roll_check": {
+        "enabled": False,
+        "stat_types": [],  # List of stat types: ["BD", "ATT", "MATT", "IED", "CD", "IA", "MESO"]
+        "required_count": 2  # Number of matching lines required (1, 2, or 3)
+    },
+    "stat_checks": [],  # List of dicts: [{"type": "2L_stat", "stat": "STR", "min_value": 9}, ...]
+    "ocr_callback": None  # Callback function to update OCR results in GUI
+}
+
+# Global config - will be set by GUI
+config = default_config.copy()
+
+# Global stop event for immediate bot stopping
+bot_stop_event = threading.Event()
 
 
 class potential:
     line1=None
     line2=None
+    line3=None
     stop_bot = False
+    last_three_rolls = []  # Track last 3 roll results to detect when cubes are used up
+    
+    def _send_ocr_result(self, text):
+        """Send OCR result to GUI callback if available"""
+        ocr_callback = config.get("ocr_callback")
+        if ocr_callback:
+            try:
+                ocr_callback(text)
+            except Exception as e:
+                # Silently fail if callback has issues
+                pass
 
     def get_lines(self):
-        lines = process_lines()
+        window_name = config.get("window_name")
+        crop_region = config.get("crop_region", None)
+        test_image_path = config.get("test_image_path", None)
+        auto_detect_crop = config.get("auto_detect_crop", False)
+        cube_type = config.get("cube_type", "Glowing")
+        lines = process_lines(window_name, debug=False, crop_region=crop_region, test_image_path=test_image_path, auto_detect_crop=auto_detect_crop, cube_type=cube_type)
         self.line1 = lines[0]
         self.line2 = lines[1]
+        self.line3 = lines[2] if len(lines) > 2 else "Trash"
+    
+    def get_stat_values(self):
+        """
+        Extract stat values from all lines (up to 3) and return a dictionary.
+        ALL stats are added to STR, DEX, INT, and LUK as per reference logic.
+        """
+        stats = {"STR": 0, "DEX": 0, "INT": 0, "LUK": 0, "ALL": 0, "ATT": 0, "MATT": 0, "BD": 0, "IED": 0}
+        
+        # Get stats from all lines
+        lines_to_process = [self.line1, self.line2]
+        if self.line3 and self.line3 != "Trash":
+            lines_to_process.append(self.line3)
+        
+        for line in lines_to_process:
+            if line and line != "Trash":
+                stat_type, stat_value = get_stat_from_line(line)
+                if stat_type:
+                    if stat_type == "ALL":
+                        stats["ALL"] += stat_value
+                    elif stat_type == "ATT":
+                        stats["ATT"] += stat_value
+                    elif stat_type == "MATT":
+                        stats["MATT"] += stat_value
+                    elif stat_type == "BD":
+                        stats["BD"] += stat_value
+                    elif stat_type == "IED":
+                        stats["IED"] += stat_value
+                    else:
+                        stats[stat_type] += stat_value
+        
+        # Apply ALL stats to all four main stats (as per reference logic)
+        all_value = stats["ALL"]
+        if all_value > 0:
+            stats["STR"] += all_value
+            stats["DEX"] += all_value
+            stats["INT"] += all_value
+            stats["LUK"] += all_value
+        
+        return stats
+    
+    def get_total_stats_string(self):
+        """
+        Format the total stats as a string for display.
+        Returns a string like "STR: 9, DEX: 9, ATT: 6, MATT: 9, BD: 40, IED: 35" or empty string if no stats.
+        """
+        stats = self.get_stat_values()
+        stat_parts = []
+        
+        # Add main stats (STR, DEX, INT, LUK, ATT, MATT) if they have values
+        for stat_type in ["STR", "DEX", "INT", "LUK", "ATT", "MATT"]:
+            if stats.get(stat_type, 0) > 0:
+                stat_parts.append(f"{stat_type}: {stats[stat_type]}")
+        
+        # Add BD (Boss Damage) if it exists
+        if stats.get("BD", 0) > 0:
+            stat_parts.append(f"BD: {stats['BD']}")
+        
+        # Add IED (Ignore Defense) if it exists
+        if stats.get("IED", 0) > 0:
+            stat_parts.append(f"IED: {stats['IED']}")
+        
+        # Add ALL stat separately if it exists
+        if stats.get("ALL", 0) > 0:
+            stat_parts.append(f"ALL: {stats['ALL']}")
+        
+        if stat_parts:
+            return ", ".join(stat_parts)
+        return ""
+    
+    def get_highest_stat(self):
+        """
+        Calculate the highest stat value, considering only enabled stat checks.
+        Returns the maximum stat value among checked stats.
+        """
+        stats = self.get_stat_values()
+        statcalc = {}
+        
+        if config["STRcheck"]:
+            statcalc['STR'] = stats['STR']
+        if config["DEXcheck"]:
+            statcalc['DEX'] = stats['DEX']
+        if config["INTcheck"]:
+            statcalc['INT'] = stats['INT']
+        if config["LUKcheck"]:
+            statcalc['LUK'] = stats['LUK']
+        if config["ALLcheck"]:
+            statcalc['ALL'] = stats['ALL']
+        
+        if not statcalc:
+            return 0
+        
+        return max(statcalc.values())
+    
+    def check_roll_stat_threshold(self):
+        """
+        Check if the highest stat meets the threshold requirement.
+        Returns True if threshold is met, False otherwise.
+        """
+        if not config["stopAtStatThreshold"]:
+            return False
+        
+        highest_stat = self.get_highest_stat()
+        if highest_stat >= config["statThreshold"]:
+            self.stop_bot = True
+            stats = self.get_stat_values()
+            # Format output with 3 lines and total stats
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats}, Highest: {highest_stat}, Threshold: {config['statThreshold']})"
+            self._send_ocr_result(result_text)
+            return True
+        return False
+    
+    def check_roll_2L_stat(self, stat_type, min_value_per_line=0):
+        """
+        Check if both lines contain the specified stat type with minimum values.
+        stat_type: "STR", "DEX", "INT", "LUK", or "ALL"
+        min_value_per_line: minimum value required per line (0 = any value)
+        """
+        stat1_type, stat1_value = get_stat_from_line(self.line1)
+        stat2_type, stat2_value = get_stat_from_line(self.line2)
+        
+        if stat1_type == stat_type and stat2_type == stat_type:
+            if min_value_per_line == 0 or (stat1_value >= min_value_per_line and stat2_value >= min_value_per_line):
+                self.stop_bot = True
+                lines_str = f"{self.line1}, {self.line2}"
+                if self.line3 and self.line3 != "Trash":
+                    lines_str += f", {self.line3}"
+                total_stats = self.get_total_stats_string()
+                result_text = f"{lines_str}    PASS (2L {stat_type}, Stats: {total_stats})"
+                self._send_ocr_result(result_text)
+                return True
+        return False
+    
+    def check_roll_1L_stat(self, stat_type, min_value=0):
+        """
+        Check if at least one line contains the specified stat type.
+        stat_type: "STR", "DEX", "INT", "LUK", or "ALL"
+        min_value: minimum value required (0 = any value)
+        """
+        stat1_type, stat1_value = get_stat_from_line(self.line1)
+        stat2_type, stat2_value = get_stat_from_line(self.line2)
+        
+        if (stat1_type == stat_type and (min_value == 0 or stat1_value >= min_value)) or \
+           (stat2_type == stat_type and (min_value == 0 or stat2_value >= min_value)):
+            self.stop_bot = True
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (1L {stat_type}, Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
+        return False
 
     def check_roll_2L_BD(self):
         if self.line1 in single_lines_dict["BD"] and self.line2 in single_lines_dict['BD']:
             self.stop_bot = True
-            return print(self.line1,self.line2,"    PASS")
+            result_text = f"{self.line1}, {self.line2}    PASS"
+            self._send_ocr_result(result_text)
+            return True
         else:
-            return 
+            return False
 
     def check_roll_2L_IA(self):
         if self.line1 in single_lines_dict['IA'] and self.line2 in single_lines_dict['IA']:
             self.stop_bot = True
-            return print(self.line1,self.line2,"    PASS")
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
         else:
-            return 
+            return False
 
     def check_roll_2L_CD_6(self):
         if self.line1 == single_lines_dict['CD'][0] and self.line2 == single_lines_dict['CD'][0]:
             self.stop_bot = True
-            return print(self.line1,self.line2,"    PASS")
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
         else:
             return
 
     def check_roll_2L_ATT_18(self):
-        if self.line1 in single_lines_dict['ATT'][0] and self.line2 in single_lines_dict['ATT'][0]:
+        if self.line1 in single_lines_dict['ATT'] and self.line2 in single_lines_dict['ATT']:
             self.stop_bot = True
-            return print(self.line1,self.line2,"    PASS")
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
         else:
-            return 
+            return False
     
     def check_roll_2L_ATT_15(self):
-        if self.line1 in single_lines_dict['ATT'][0] and self.line2 in double_lines_dict['ATT'][1]:
+        if self.line1 in single_lines_dict['ATT'] and self.line2 in double_lines_dict.get('ATT', []):
             self.stop_bot = True
-            return 'Done'
-        elif self.line2 in single_lines_dict['ATT'][0] and self.line1 in double_lines_dict['ATT'][1]:
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
+        elif self.line2 in single_lines_dict['ATT'] and self.line1 in double_lines_dict.get('ATT', []):
             self.stop_bot = True
-            return 'Done'
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
         else:
-            return "Trash"
+            return False
     
     def check_roll_BD_IED(self):
         if self.line1 in single_lines_dict['BD'] and self.line2 in double_lines_dict['IED']:
             self.stop_bot = True
-            return 'Done'
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
         elif self.line2 in single_lines_dict['BD'] and self.line1 in double_lines_dict['IED']:
             self.stop_bot = True
-            return 'Done'
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
         else:
-            return "Trash"
+            return False
+    
+    def _has_boss_damage(self, line):
+        """Check if line contains Boss Damage"""
+        if not line or line == "Trash":
+            return False
+        import re
+        # Check exact match first (most reliable)
+        if line in single_lines_dict['BD']:
+            return True
+        # Use strict regex pattern matching (more reliable than fuzzy matching)
+        # Only match if we see "Boss Damage" followed by a percentage
+        return bool(re.search(r'Boss\s+Damage\s*:?\s*\+?\d+%', line, re.IGNORECASE))
+    
+    def _has_attack_power(self, line):
+        """Check if line contains Attack Power (ATT) - does NOT include Magic ATT"""
+        if not line or line == "Trash":
+            return False
+        import re
+        # CRITICAL: Check for Magic ATT FIRST and exclude it immediately
+        # This must be done before any other checks to prevent false matches
+        if re.search(r'Magic\s+ATT', line, re.IGNORECASE):
+            return False  # Explicitly exclude Magic ATT
+        
+        # Check exact match or pattern match (only ATT, not MATT)
+        # Note: matches_line_pattern might match Magic ATT, so we check Magic ATT first above
+        if line in single_lines_dict['ATT']:
+            return True
+        
+        # Check pattern match, but be careful - matches_line_pattern might match Magic ATT
+        # So we verify it's not Magic ATT after matching
+        if matches_line_pattern(line, single_lines_dict['ATT']):
+            # Double-check it's not Magic ATT (in case matches_line_pattern matched it)
+            if not re.search(r'Magic\s+ATT', line, re.IGNORECASE):
+                return True
+        
+        # Also check with regex for variations (exclude Magic ATT using negative lookbehind)
+        # Match ATT or Attack Power, but NOT Magic ATT
+        # Use negative lookbehind to ensure ATT is not preceded by "Magic "
+        return bool(re.search(r'(?<!Magic\s)(ATT|Attack\s+Power)\s*:?\s*\+?\d+%', line, re.IGNORECASE))
+    
+    def _has_magic_att(self, line):
+        """Check if line contains Magic ATT specifically"""
+        if not line or line == "Trash":
+            return False
+        import re
+        # Check exact match or pattern match
+        if (line in single_lines_dict['MATT'] or 
+                matches_line_pattern(line, single_lines_dict['MATT'])):
+            return True
+        # Also check with regex for variations
+        return bool(re.search(r'Magic\s+ATT\s*:?\s*\+?\d+%', line, re.IGNORECASE))
+    
+    def _has_ignore_defense(self, line):
+        """Check if line contains Ignore Defense (IED) - only actual IED stat lines, not damage reduction chance"""
+        if not line or line == "Trash":
+            return False
+        import re
+        # Use strict regex pattern matching - only match actual IED stat lines
+        # Exclude "X% chance to ignore Y% damage" lines (those are damage reduction, not IED)
+        ied_patterns = [
+            r'Ignore\s+Defense\s*:?\s*\+?\d+%',  # "Ignore Defense +35%"
+            r'Attacks\s+ignore\s+\d+%\s+Monster(?:\s+Defense)?',  # "Attacks ignore 35% Monster" or "Attacks ignore 35% Monster Defense"
+        ]
+        for pattern in ied_patterns:
+            if re.search(pattern, line, re.IGNORECASE):
+                # Double-check: exclude lines with "chance to ignore" (damage reduction, not IED)
+                if not re.search(r'chance\s+to\s+ignore', line, re.IGNORECASE):
+                    return True
+        return False
+    
+    def _has_crit_damage(self, line):
+        """Check if line contains Critical Damage"""
+        if not line or line == "Trash":
+            return False
+        import re
+        # Check exact match or pattern match
+        if (line in single_lines_dict['CD'] or 
+                matches_line_pattern(line, single_lines_dict['CD'])):
+            return True
+        # Also check with regex for variations
+        return bool(re.search(r'Critical\s+Damage\s*:?\s*\+?\d+%', line, re.IGNORECASE))
+    
+    def _has_item_drop_rate(self, line):
+        """Check if line contains Item Drop Rate"""
+        if not line or line == "Trash":
+            return False
+        import re
+        # Check for Item Acquisition Rate (IA) which is the same as Item Drop Rate
+        if (line in single_lines_dict['IA'] or 
+                matches_line_pattern(line, single_lines_dict['IA']) or
+                matches_line_pattern(line, double_lines_dict.get('Drop', []))):
+            return True
+        # Also check with regex for variations
+        return bool(re.search(r'(Item|tem)\s+(Acquisition\s+Rate|Drop\s+Rate)\s*:?\s*\+?\d+%', line, re.IGNORECASE))
+    
+    def _has_meso_obtained(self, line):
+        """Check if line contains Meso Obtained"""
+        if not line or line == "Trash":
+            return False
+        import re
+        # Check for Meso Drop Rate patterns
+        if matches_line_pattern(line, double_lines_dict.get('MnD', [])):
+            return True
+        # Also check with regex for variations
+        return bool(re.search(r'(Meso|Meso\s+Obtained|Meso\s+Drop)\s*:?\s*\+?\d+%', line, re.IGNORECASE))
+    
+    def _line_matches_stat_type(self, line, stat_type):
+        """Check if a line matches a given stat type"""
+        stat_type_upper = stat_type.upper()
+        if stat_type_upper == "BD" or stat_type_upper == "BOSS DAMAGE":
+            return self._has_boss_damage(line)
+        elif stat_type_upper == "ATT" or stat_type_upper == "ATTACK POWER":
+            return self._has_attack_power(line)
+        elif stat_type_upper == "MATT" or stat_type_upper == "MAGIC ATT":
+            return self._has_magic_att(line)
+        elif stat_type_upper == "IED" or stat_type_upper == "IGNORE DEFENSE":
+            return self._has_ignore_defense(line)
+        elif stat_type_upper == "CD" or stat_type_upper == "CRIT DAMAGE" or stat_type_upper == "CRITICAL DAMAGE":
+            return self._has_crit_damage(line)
+        elif stat_type_upper == "IA" or stat_type_upper == "ITEM DROP RATE" or stat_type_upper == "DROP RATE":
+            return self._has_item_drop_rate(line)
+        elif stat_type_upper == "MESO" or stat_type_upper == "MESO OBTAINED":
+            return self._has_meso_obtained(line)
+        return False
+    
+    def check_roll_flexible(self, stat_types, required_count):
+        """
+        Flexible roll check: stop if required_count lines match any of the selected stat types.
+        
+        Args:
+            stat_types: List of stat types to check for (e.g., ["BD", "ATT", "MATT"])
+            required_count: Number of matching lines required (1, 2, or 3)
+        
+        Returns:
+            True if condition is met (bot should stop), False otherwise
+        """
+        if not stat_types or required_count < 1 or required_count > 3:
+            return False
+        
+        lines_to_check = [self.line1, self.line2]
+        if self.line3 and self.line3 != "Trash":
+            lines_to_check.append(self.line3)
+        
+        matching_count = 0
+        matched_lines = []
+        
+        # Check each line against all selected stat types
+        for line in lines_to_check:
+            if line and line != "Trash":
+                for stat_type in stat_types:
+                    if self._line_matches_stat_type(line, stat_type):
+                        matching_count += 1
+                        matched_lines.append((line, stat_type))
+                        # Debug: log what matched (can be removed later)
+                        print(f"[DEBUG] Line matched {stat_type}: {repr(line)}")
+                        break  # Count each line only once
+        print("--------------------------------")
+        
+        # Stop if we have enough matching lines
+        if matching_count >= required_count:
+            self.stop_bot = True
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            stat_types_str = ", ".join(stat_types)
+            result_text = f"{lines_str}    PASS ({required_count}L: {stat_types_str}, Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
+        
+        return False
+    
+    def check_roll_BD_ATT_IED(self):
+        """
+        Check if all 3 lines contain Boss Damage, Attack Power (or MATK), and Ignore Defense
+        in any combination across the 3 lines.
+        """
+        lines_to_check = [self.line1, self.line2]
+        if self.line3 and self.line3 != "Trash":
+            lines_to_check.append(self.line3)
+        
+        has_bd = False
+        has_att = False
+        has_ied = False
+        
+        # Check each line for the three stat types
+        for line in lines_to_check:
+            if line and line != "Trash":
+                if self._has_boss_damage(line):
+                    has_bd = True
+                if self._has_attack_power(line):
+                    has_att = True
+                if self._has_ignore_defense(line):
+                    has_ied = True
+        
+        # All three must be present
+        if has_bd and has_att and has_ied:
+            self.stop_bot = True
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (BD + ATT/MATK + IED, Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
+        else:
+            return False
 
     def check_roll_1L_IA(self):
         if self.line1 in single_lines_dict['IA'] or self.line2 in single_lines_dict['IA']:
             self.stop_bot = True
-            return print(self.line1,self.line2,"    PASS")
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
         else:
-            return 
+            return False
     
     def check_roll_IA_DR(self):
-        if self.line1 in single_lines_dict['IA'][2] and self.line2 in double_lines_dict['Drop']:
+        if self.line1 in single_lines_dict['IA'] and self.line2 in double_lines_dict.get('Drop', []):
             self.stop_bot=True
-            return print(self.line1,self.line2,"    PASS")
-        elif self.line2 in single_lines_dict['IA'] and self.line1 in double_lines_dict['Drop']:
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
+        elif self.line2 in single_lines_dict['IA'] and self.line1 in double_lines_dict.get('Drop', []):
             self.stop_bot = True
-            return print(self.line1,self.line2,"    PASS")
+            lines_str = f"{self.line1}, {self.line2}"
+            if self.line3 and self.line3 != "Trash":
+                lines_str += f", {self.line3}"
+            total_stats = self.get_total_stats_string()
+            result_text = f"{lines_str}    PASS (Stats: {total_stats})"
+            self._send_ocr_result(result_text)
+            return True
 
         else:
             return
@@ -86,22 +559,169 @@ class potential:
 
 
     def startbot(self):
-        time_to_start()
-        while self.stop_bot== False and keyboard.is_pressed('q')==False:
-            click()
-            time.sleep(1)
+        # Reset stop event at start
+        bot_stop_event.clear()
+        
+        # Reset roll tracking
+        self.last_three_rolls = []
+        
+        # Clear cached potlines instance to ensure fresh start
+        from translate_ocr_results import clear_potlines_cache
+        clear_potlines_cache()
+        
+        # Check if current potential already satisfies threshold before starting
+        self._send_ocr_result("Checking initial potential...")
+        # No delay needed - get_lines() will take a fresh screenshot
+        self.get_lines()  # Take a fresh screenshot and get current lines
+        
+        # Check if threshold is already met
+        if config["stopAtStatThreshold"]:
+            if self.check_roll_stat_threshold():
+                self._send_ocr_result("Initial potential already meets threshold! Stopping bot.")
+                return
+        
+        # Check all other conditions
+        checks_passed = False
+        
+        # Flexible roll check
+        if config.get("flexible_roll_check", {}).get("enabled", False):
+            flex_config = config["flexible_roll_check"]
+            stat_types = flex_config.get("stat_types", [])
+            required_count = flex_config.get("required_count", 2)
+            if self.check_roll_flexible(stat_types, required_count):
+                checks_passed = True
+        
+        # Stat-specific checks from config
+        for stat_check in config["stat_checks"]:
+            check_type = stat_check.get("type")
+            stat = stat_check.get("stat")
+            min_value = stat_check.get("min_value", 0)
+            
+            if check_type == "2L_stat":
+                if self.check_roll_2L_stat(stat, min_value_per_line=min_value):
+                    checks_passed = True
+            elif check_type == "1L_stat":
+                if self.check_roll_1L_stat(stat, min_value=min_value):
+                    checks_passed = True
+        
+        if checks_passed or self.stop_bot:
+            print("Initial potential already satisfies conditions! Stopping bot.")
+            return
+        
+        print("Initial potential does not meet requirements. Starting bot loop...")
+        
+        time_to_start(bot_stop_event)
+        
+        # Cache config values to avoid repeated lookups in loop
+        window_name = config.get("window_name")
+        auto_detect_crop = config.get("auto_detect_crop", False)
+        
+        while self.stop_bot == False and keyboard.is_pressed('q') == False and not bot_stop_event.is_set():
+            # Check stop event before each action
+            if bot_stop_event.is_set():
+                self._send_ocr_result("Bot stopped by user")
+                break
+            
+            # Perform click action - try to click Reset button if available
+            reset_clicked = False
+            
+            # Try to get potlines instance and click Reset button
+            try:
+                potlines_instance = get_potlines(window_name=window_name, auto_detect_crop=auto_detect_crop)
+                if potlines_instance and hasattr(potlines_instance, 'reset_button_pos') and potlines_instance.reset_button_pos:
+                    reset_clicked = click_reset_button(window_name, potlines_instance.reset_button_pos)
+            except Exception as e:
+                reset_clicked = False
+            
+            # Fallback to generic click if Reset button click failed
+            if not reset_clicked:
+                click()
+            
+            # Check immediately after click (before any sleep)
+            if bot_stop_event.is_set():
+                self._send_ocr_result("Bot stopped by user")
+                break
+            
+            # Wait for potential window to update after click
+            # Use shorter sleep intervals for more responsive stopping
+            # Reduced from 1s to 0.5s - enough time for window to update
+            for _ in range(5):  # Break 0.5 seconds into 5 checks of 0.1 seconds
+                if bot_stop_event.is_set():
+                    print("Bot stopped by user")
+                    break
+                time.sleep(0.1)
+            
+            # Final check before processing lines
+            if bot_stop_event.is_set():
+                self._send_ocr_result("Bot stopped by user")
+                break
+            
             self.get_lines()
-            self.check_roll_2L_IA()
-            #self.check_roll_IA_DR()
-            #self.check_roll_2L_ATT_18()
-            #self.check_roll_2L_BD()
-            #self.check_roll_2L_CD_6()
-            #self.check_roll_1L_IA()
+            
+            # Check if cubes are used up (same stats 3 times in a row)
+            current_roll = (self.line1, self.line2, self.line3)
+            self.last_three_rolls.append(current_roll)
+            if len(self.last_three_rolls) > 3:
+                self.last_three_rolls.pop(0)  # Keep only last 3
+            
+            # If we have 3 rolls and they're all the same, cubes are used up
+            if len(self.last_three_rolls) == 3:
+                if (self.last_three_rolls[0] == self.last_three_rolls[1] == self.last_three_rolls[2]):
+                    self.stop_bot = True
+                    lines_str = f"{self.line1}, {self.line2}"
+                    if self.line3 and self.line3 != "Trash":
+                        lines_str += f", {self.line3}"
+                    result_text = f"{lines_str}    STOP (Cubes used up - same stats 3 times in a row)"
+                    self._send_ocr_result(result_text)
+                    print("Cubes used up - same stats detected 3 times in a row. Stopping bot.")
+                    return
+            
+            # Stat threshold checking (if enabled)
+            if config["stopAtStatThreshold"]:
+                self.check_roll_stat_threshold()
+            
+            # Flexible roll check
+            if config.get("flexible_roll_check", {}).get("enabled", False):
+                flex_config = config["flexible_roll_check"]
+                stat_types = flex_config.get("stat_types", [])
+                required_count = flex_config.get("required_count", 2)
+                self.check_roll_flexible(stat_types, required_count)
+            
+            # Stat-specific checks from config
+            for stat_check in config["stat_checks"]:
+                check_type = stat_check.get("type")
+                stat = stat_check.get("stat")
+                min_value = stat_check.get("min_value", 0)
+                
+                if check_type == "2L_stat":
+                    self.check_roll_2L_stat(stat, min_value_per_line=min_value)
+                elif check_type == "1L_stat":
+                    self.check_roll_1L_stat(stat, min_value=min_value)
+            
+            # Check stop event before continuing
+            if bot_stop_event.is_set():
+                self._send_ocr_result("Bot stopped by user")
+                break
+            
             if self.stop_bot == False:
-                print(self.line1,self.line2,"    REJECT")
-                time.sleep(1)
+                # Format output with 3 lines and total stats
+                lines_str = f"{self.line1}, {self.line2}"
+                if self.line3 and self.line3 != "Trash":
+                    lines_str += f", {self.line3}"
+                total_stats = self.get_total_stats_string()
+                result_text = f"{lines_str}    REJECT (Stats: {total_stats})"
+                self._send_ocr_result(result_text)
+                
+                # Check stop event before sleeping
+                if bot_stop_event.is_set():
+                    self._send_ocr_result("Bot stopped by user")
+                    break
+                
+                # Reduced delay - no need to wait 1s after reject
+                time.sleep(0.2)  # Small delay before next iteration
             else:
-                time.sleep(1)
+                # Small delay before returning after successful match
+                time.sleep(0.2)
                 return
 
 
@@ -111,5 +731,21 @@ class potential:
 
 
 
-pot = potential()
-pot.startbot()
+def run_bot(bot_config=None):
+    """Run the bot with the given configuration"""
+    global config
+    if bot_config:
+        config = bot_config.copy()
+    else:
+        config = default_config.copy()
+    
+    # Reset stop event when starting
+    bot_stop_event.clear()
+    
+    pot = potential()
+    pot.startbot()
+
+# Only auto-start if not imported as a module
+if __name__ == "__main__":
+    pot = potential()
+    pot.startbot()

@@ -1,0 +1,19 @@
+# Image Processing
+opencv-python>=4.5.0
+numpy>=1.21.0
+Pillow>=8.0.0
+
+# OCR (Optical Character Recognition)
+pytesseract>=0.3.10
+
+# Automation
+pyautogui>=0.9.54
+keyboard>=0.13.5
+
+# Windows API (for window capture)
+pywin32>=300
+mss>=9.0.0  # Desktop Duplication API for reliable window capture (Windows 10+)
+
+# Build tool (optional, for creating executables)
+# pyinstaller>=5.0.0  # Uncomment if you want to build .exe files
+

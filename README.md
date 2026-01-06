@@ -6,19 +6,37 @@ Video on how to setup in game: https://youtu.be/9U0pX_-GGMM
 
 HOW TO RUN BOT:
 
-1. Download lists of required packages:
-    1. Python 3 (https://www.python.org/downloads/) - download and install
-    2. Tesseract (https://linuxhint.com/install-tesseract-windows/)
-    3. pip install numpy (https://numpy.org/install/)
-    4. pip install opencv-python (https://pypi.org/project/opencv-python/)
-    5. pip install pywin32 (https://pypi.org/project/pywin32/)
-    6. pip install keyboard (https://pypi.org/project/keyboard/)
-    7. pip install pytesseract (https://pypi.org/project/pytesseract/)
-    8. pip install pyautogui (https://pypi.org/project/PyAutoGUI/)
-    9. pip install Pillow (https://pypi.org/project/Pillow/)
+1. Install required packages:
+    - Python 3 (https://www.python.org/downloads/) - download and install
+    - Tesseract OCR (https://linuxhint.com/install-tesseract-windows/) - required for text recognition
+    
+    Then install Python packages using one of these methods:
+    
+    **Option A (Recommended):** Install all packages at once using requirements.txt:
+    ```
+    pip install -r requirements.txt
+    ```
+    
+    **Option B:** Install packages individually:
+    - pip install numpy
+    - pip install opencv-python
+    - pip install pywin32
+    - pip install keyboard
+    - pip install pytesseract
+    - pip install pyautogui
+    - pip install Pillow
 
-2. Open file "bot_logic.py" in your IDE. IMPORTANT: RUN YOUR IDE IN ADMINISTRATOR MODE!
-3. add a function to stop the bot when you get the lines you desire. 
+2. **Run the GUI (Recommended):**
+   - Open `botUI.py` in your IDE. IMPORTANT: RUN YOUR IDE IN ADMINISTRATOR MODE!
+   - Configure your desired settings in the GUI (stat thresholds, roll checks, etc.)
+   - Click "Start Bot" to begin
+
+   **OR run directly:**
+   - Open file "bot_logic.py" in your IDE. IMPORTANT: RUN YOUR IDE IN ADMINISTRATOR MODE!
+   - Configure settings in the code (stat thresholds, which checks to enable)
+   - Run the script
+
+3. (For direct run only) Add a function to stop the bot when you get the lines you desire. 
     Example: Stop the bot when 2 lines of boss damage is rolled
         
         def check_roll_2L_BD(self):
