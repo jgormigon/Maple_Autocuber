@@ -3,6 +3,7 @@ Automatic detection of Potential region from screenshots
 """
 import cv2 as cv
 import numpy as np
+import tesseract_config  # Configure Tesseract path before importing pytesseract
 import pytesseract
 import os
 from crop_config import OFFSET_X, OFFSET_ABOVE, STAT_WIDTH, STAT_HEIGHT, BRIGHT_OFFSET_X, BRIGHT_OFFSET_ABOVE, BRIGHT_STAT_WIDTH, BRIGHT_STAT_HEIGHT

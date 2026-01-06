@@ -12,12 +12,14 @@ a = Analysis(
     datas=[
         ('templates', 'templates'),  # Include templates folder (reset_button.png.jpg)
         ('crop_config.py', '.'),  # Include config file
+        ('tesseract', 'tesseract'),  # Include bundled Tesseract OCR
     ],
     hiddenimports=[
         'win32gui',
         'win32api',
         'win32con',
         'pytesseract',
+        'tesseract_config',  # Tesseract configuration module
         'cv2',
         'numpy',
         'PIL',

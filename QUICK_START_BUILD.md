@@ -8,9 +8,9 @@
    pip install pyinstaller
    ```
 
-2. Install Tesseract OCR:
-   - Download from: https://github.com/UB-Mannheim/tesseract/wiki
-   - Install to default location
+2. Ensure Tesseract is bundled:
+   - Portable Tesseract should be in `tesseract/` folder at project root
+   - The build will automatically include it in the executable
 
 ## Build Steps
 
@@ -32,15 +32,15 @@ The executable will be in `dist/MapleAutocuber.exe` (Windows) or `dist/MapleAuto
 
 ## Important Notes
 
-- The executable requires Tesseract OCR to be installed on the target machine
-- The executable includes all dependencies and assets (templates folder, config file)
-- File size will be large (50-100MB+) - this is normal
+- Tesseract OCR is bundled with the executable - no separate installation needed!
+- The executable includes all dependencies and assets (templates folder, config file, Tesseract)
+- File size will be large (100-200MB+) - this is normal due to bundled Tesseract
 - For debugging, change `console=False` to `console=True` in `build_exe.spec`
 
 ## Distribution
 
 When sharing the executable:
 1. Share the `.exe` file from the `dist` folder
-2. Include instructions to install Tesseract OCR
+2. No additional installation required - Tesseract is bundled!
 3. Optionally include `crop_config.py` for customization
 

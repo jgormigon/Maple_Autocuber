@@ -14,6 +14,14 @@ if errorlevel 1 (
     )
 )
 
+REM Verify Tesseract folder exists
+if not exist "tesseract\tesseract.exe" (
+    echo WARNING: Tesseract folder not found in tesseract/
+    echo Please ensure tesseract/ contains the portable Tesseract installation
+    echo The build will continue, but Tesseract must be bundled for the executable to work.
+    pause
+)
+
 REM Clean previous builds
 echo Cleaning previous builds...
 if exist build rmdir /s /q build

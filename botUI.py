@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter import filedialog
 import threading
 import win32gui
+import tesseract_config  # Configure Tesseract before importing bot_logic
 from bot_logic import run_bot, default_config, bot_stop_event
 
 def get_all_windows():

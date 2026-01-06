@@ -5,6 +5,7 @@ import os
 import time
 from windowcapture import WindowCapture
 from image_processing import image_process
+import tesseract_config  # Configure Tesseract path before importing pytesseract
 import pytesseract
 from PIL import Image
 from auto_detect_crop import detect_potential_region
