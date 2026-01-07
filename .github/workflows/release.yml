@@ -113,42 +113,42 @@ jobs:
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
-        name: MapleAutocuber-${{ steps.get_version.outputs.version }}${{ steps.get_version_commit.outputs.version }}
-        path: |
-          MapleAutocuber-*.zip
-          release/
-        retention-days: 30
+          name: MapleAutocuber-${{ steps.get_version.outputs.version }}${{ steps.get_version_commit.outputs.version }}
+          path: |
+            MapleAutocuber-*.zip
+            release/
+          retention-days: 30
         
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-        files: |
-          MapleAutocuber-*.zip
-        name: Release ${{ steps.get_version.outputs.version }}
-        body: |
-          ## Maple Autocuber ${{ steps.get_version.outputs.version }}
-          
-          ### Installation
-          
-          Download `MapleAutocuber-*.zip`, extract the archive, and run `MapleAutocuber.exe`.
-          
-          ### Features
-          
-          - ✅ Standalone executable - no Python installation required
-          - ✅ Tesseract OCR bundled - no additional installation needed
-          - ✅ All dependencies included
-          
-          ### Notes
-          
-          - Run as Administrator if you encounter permission issues
-          - The executable is large (~100MB+) because it includes Python and all dependencies
-          
-          ### Changes
-          
-          See commit history for details.
-        draft: false
-        prerelease: false
+          files: |
+            MapleAutocuber-*.zip
+          name: Release ${{ steps.get_version.outputs.version }}
+          body: |
+            ## Maple Autocuber ${{ steps.get_version.outputs.version }}
+            
+            ### Installation
+            
+            Download `MapleAutocuber-*.zip`, extract the archive, and run `MapleAutocuber.exe`.
+            
+            ### Features
+            
+            - ✅ Standalone executable - no Python installation required
+            - ✅ Tesseract OCR bundled - no additional installation needed
+            - ✅ All dependencies included
+            
+            ### Notes
+            
+            - Run as Administrator if you encounter permission issues
+            - The executable is large (~100MB+) because it includes Python and all dependencies
+            
+            ### Changes
+            
+            See commit history for details.
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
