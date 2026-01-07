@@ -82,6 +82,7 @@ jobs:
           
           # Create README for release
           $readmeLines = @(
+            $readmeLines = @(
             "# Maple Autocuber Release",
             "",
             "Version: $version",
@@ -90,7 +91,7 @@ jobs:
             "## Installation",
             "",
             "1. Extract all files to a folder",
-            "2. Run `MapleAutocuber.exe`",
+            "2. Run MapleAutocuber.exe",
             "3. No additional installation required - Tesseract OCR is bundled!",
             "",
             "## Notes",
@@ -101,8 +102,8 @@ jobs:
             "",
             "## Files",
             "",
-            "- `MapleAutocuber.exe` - Main executable",
-            "- `tesseract/` - Bundled Tesseract OCR (already included in .exe, this is for reference)"
+            "- MapleAutocuber.exe - Main executable",
+            "- tesseract/ - Bundled Tesseract OCR (already included in .exe, this is for reference)"
           )
           $readmeLines -join "`r`n" | Out-File -FilePath "release\README.txt" -Encoding UTF8
           
