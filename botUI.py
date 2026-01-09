@@ -271,12 +271,16 @@ class BotGUI:
         self.int_check = BooleanVar(value=self.config["INTcheck"])
         self.luk_check = BooleanVar(value=self.config["LUKcheck"])
         self.all_check = BooleanVar(value=self.config["ALLcheck"])
+        self.att_check = BooleanVar(value=self.config.get("ATTcheck", False))
+        self.matt_check = BooleanVar(value=self.config.get("MATTcheck", False))
         
         Checkbutton(stat_types_frame, text="STR", variable=self.str_check).pack(anchor=W)
         Checkbutton(stat_types_frame, text="DEX", variable=self.dex_check).pack(anchor=W)
         Checkbutton(stat_types_frame, text="INT", variable=self.int_check).pack(anchor=W)
         Checkbutton(stat_types_frame, text="LUK", variable=self.luk_check).pack(anchor=W)
         Checkbutton(stat_types_frame, text="ALL Stats", variable=self.all_check).pack(anchor=W)
+        Checkbutton(stat_types_frame, text="Attack Power (ATT)", variable=self.att_check).pack(anchor=W)
+        Checkbutton(stat_types_frame, text="Magic ATT (MATT)", variable=self.matt_check).pack(anchor=W)
         
         # Re-bind mousewheel after all widgets are added to ensure scrolling works everywhere
         if hasattr(scrollable_frame, '_bind_mousewheel'):
@@ -395,6 +399,8 @@ class BotGUI:
         config["INTcheck"] = self.int_check.get()
         config["LUKcheck"] = self.luk_check.get()
         config["ALLcheck"] = self.all_check.get()
+        config["ATTcheck"] = self.att_check.get()
+        config["MATTcheck"] = self.matt_check.get()
         
         # Flexible roll check (new system)
         flex_stat_types = []
