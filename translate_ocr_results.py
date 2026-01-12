@@ -73,16 +73,17 @@ double_lines_list = ['Attacks ignore 30% Monster', 'Attacks ignore 35% Monster',
 # Stat dictionaries - common OCR patterns for stat lines
 # These patterns account for OCR variations like "STR: +9%" or "STR +9%" or "STR:+9%"
 stat_patterns = {
-    "STR": [r'STR\s*:?\s*\+?(\d+)%+', r'STR\s*\+(\d+)%+'],  # Added optional + for missing + cases, %+ allows one or more %
-    "DEX": [r'DEX\s*:?\s*\+?(\d+)%+', r'DEX\s*\+(\d+)%+'],
-    "INT": [r'INT\s*:?\s*\+?(\d+)%+', r'INT\s*\+(\d+)%+'],
-    "LUK": [r'LUK\s*:?\s*\+?(\d+)%+', r'LUK\s*\+(\d+)%+'],  # Added optional + for missing + cases, %+ allows one or more %
+    "STR": [r'\bSTR\s*:?\s*\+?(\d+)%+', r'\bSTR\s*\+(\d+)%+'],  # Added word boundary and optional + for missing + cases, %+ allows one or more %
+    "DEX": [r'\bDEX\s*:?\s*\+?(\d+)%+', r'\bDEX\s*\+(\d+)%+'],
+    "INT": [r'\bINT\s*:?\s*\+?(\d+)%+', r'\bINT\s*\+(\d+)%+'],
+    "LUK": [r'\bLUK\s*:?\s*\+?(\d+)%+', r'\bLUK\s*\+(\d+)%+'],  # Added word boundary and optional + for missing + cases, %+ allows one or more %
     "ALL": [r'All\s+Stats\s*:?\s*\+?(\d+)%+', r'All\s+Stats\s*\+(\d+)%+', r'All\s*:?\s*\+?(\d+)%+', r'Allstats\s*:?\s*\+?(\d+)%+', r'Allstats\s*\+(\d+)%+', r'Alistats\s*:?\s*\+?(\d+)%+', r'Alistats\s*\+(\d+)%+', r'Alstats\s*:?\s*\+?(\d+)%+', r'Alstats\s*\+(\d+)%+'],
     "ATT": [r'(?<!Magic\s)ATT\s*:?\s*\+?(\d+)%+', r'(?<!Magic\s)ATT\s*\+(\d+)%+', r'(?<!Magic\s)A[ti]tack\s+Power\s*:?\s*\+?(\d+)%+', r'(?<!Magic\s)A[ti]tack\s+Power\s*\+(\d+)%+', r'(?<!Magic)A[ti]tackPower\s*:?\s*\+?(\d+)%+', r'(?<!Magic)A[ti]tackPower\s*\+(\d+)%+'],
     "MATT": [r'Magic\s+ATT\s*:?\s*\+?(\d+)%+', r'Magic\s+ATT\s*\+(\d+)%+', r'MagicATT\s*:?\s*\+?(\d+)%+', r'MagicATT\s*\+(\d+)%+', r'Magic\s+A[ti]tack\s+Power\s*:?\s*\+?(\d+)%+', r'Magic\s+A[ti]tack\s+Power\s*\+(\d+)%+', r'MagicA[ti]tackPower\s*:?\s*\+?(\d+)%+', r'MagicA[ti]tackPower\s*\+(\d+)%+'],
-    "BD": [r'BossDamage\s*\+(\d+)%+', r'BossDamage\s*:?\s*\+?(\d+)%+', r'Boss\s+Damage\s*\+(\d+)%+', r'Boss\s+Damage\s*:?\s*\+?(\d+)%+'],
+    "BD": [r'BossDamage\s*\+(\d+)%+', r'BossDamage\s*:?\s*\+?(\d+)%+', r'Boss\s+Damage\s*\+(\d+)%+', r'Boss\s+Damage\s*:?\s*\+?(\d+)%+', r'[BGx]ossDamage\s*\+(\d+)%+', r'[BGx]ossDamage\s*:?\s*\+?(\d+)%+', r'[BGx]oss\s+Damage\s*\+(\d+)%+', r'[BGx]oss\s+Damage\s*:?\s*\+?(\d+)%+', r'B[Gx]ossDamage\s*\+(\d+)%+', r'B[Gx]ossDamage\s*:?\s*\+?(\d+)%+', r'B[Gx]oss\s+Damage\s*\+(\d+)%+', r'B[Gx]oss\s+Damage\s*:?\s*\+?(\d+)%+'],
     "CD": [r'CriticalDamage\s*\+(\d+)%+', r'CriticalDamage\s*:?\s*\+?(\d+)%+', r'Critical\s+Damage\s*\+(\d+)%+', r'Critical\s+Damage\s*:?\s*\+?(\d+)%+'],
-    "IED": [r'Ign[aoe]r[ae]Defense\s*\+(\d+)%+', r'Ign[aoe]r[ae]Defense\s*:?\s*\+?(\d+)%+', r'Ign[aoe]r[ae]\s+Defense\s*\+(\d+)%+', r'Ign[aoe]r[ae]\s+Defense\s*:?\s*\+?(\d+)%+', r'Attacks\s+ignore\s+(\d+)%\s+Monster(?:\s+Defense)?']
+    "IED": [r'Ign[aoe]r[ae]Defense\s*\+(\d+)%+', r'Ign[aoe]r[ae]Defense\s*:?\s*\+?(\d+)%+', r'Ign[aoe]r[ae]\s+Defense\s*\+(\d+)%+', r'Ign[aoe]r[ae]\s+Defense\s*:?\s*\+?(\d+)%+', r'Attacks\s+ignore\s+(\d+)%\s+Monster(?:\s+Defense)?'],
+    "SC": [r'Skill\s+[Cc]ooldowns?\s*:?\s*-(\d+)\s*sec', r'Skill\s+[Cc]ooldowns?\s*-(\d+)\s*sec', r'Skill[Cc]ooldowns?\s*:?\s*-(\d+)\s*sec', r'Skill[Cc]ooldowns?\s*-(\d+)\s*sec']
 }
 def get_lines(window_name=None, debug=False, crop_region=None, test_image_path=None, auto_detect_crop=False, cube_type="Glowing"):
     try:
@@ -163,6 +164,87 @@ def fix_ocr_percent_errors(line):
     
     return fixed
 
+def fix_ocr_percent_as_nine_errors(line):
+    """
+    Fix OCR errors where '%' is misread as '9', creating invalid two-digit numbers.
+    Example: 'AllStats +49%' -> 'AllStats +4%' (the '%' was read as '9')
+    Valid stat values: 3%, 4%, 6%, 7%, 9%, 10%, 12%, 13%
+    Invalid patterns that should be fixed: +39%, +49%, +69%, +79%, +99%, +109%, +129%, +139%
+    These become: +3%, +4%, +6%, +7%, +9%, +10%, +12%, +13%
+    """
+    if not line:
+        return line
+    
+    import re
+    
+    # Valid stat values (single and double digit)
+    valid_stats = [3, 4, 6, 7, 9, 10, 12, 13]
+    
+    def replace_nine_error(match):
+        """Replace trailing 9 with % if it's likely a misread of %"""
+        full_match = match.group(0)  # e.g., "+49%"
+        # Extract the number before the 9 (e.g., "4" from "+49%")
+        number_match = re.search(r'\+(\d+)9%', full_match)
+        if number_match:
+            prefix_str = number_match.group(1)  # e.g., "4" from "+49%"
+            if prefix_str:
+                prefix_num = int(prefix_str)
+                # If the prefix (without the 9) is a valid stat, fix it
+                # e.g., "49%" -> "4%", "109%" -> "10%"
+                if prefix_num in valid_stats:
+                    # Replace the entire match with + prefix + %
+                    return '+' + str(prefix_num) + '%'
+        
+        return full_match
+    
+    # Match: + followed by digits ending in 9, followed by %
+    # This will match patterns like: +39%, +49%, +69%, +79%, +99%, +109%, +129%, +139%
+    # But we only fix if removing the 9 gives a valid stat value
+    fixed = re.sub(r'\+\d+9%', replace_nine_error, line)
+    
+    return fixed
+
+def fix_ocr_percent_as_ninety_six_errors(line):
+    """
+    Fix OCR errors where '%' is misread as '96', creating invalid three-digit numbers.
+    Example: 'INT +796' -> 'INT +7%' (the '%' was read as '96')
+    Valid stat values: 3%, 4%, 6%, 7%, 9%, 10%, 12%, 13%
+    Invalid patterns that should be fixed: +396, +496, +696, +796, +996, +1096, +1296, +1396
+    These become: +3%, +4%, +6%, +7%, +9%, +10%, +12%, +13%
+    """
+    if not line:
+        return line
+    
+    import re
+    
+    # Valid stat values (single and double digit)
+    valid_stats = [3, 4, 6, 7, 9, 10, 12, 13]
+    
+    def replace_ninety_six_error(match):
+        """Replace trailing 96 with % if it's likely a misread of %"""
+        full_match = match.group(0)  # e.g., "+796" or "+796%"
+        # Extract the number before the 96 (e.g., "7" from "+796" or "+796%")
+        number_match = re.search(r'\+(\d+)96%?', full_match)
+        if number_match:
+            prefix_str = number_match.group(1)  # e.g., "7" from "+796" or "+796%"
+            if prefix_str:
+                prefix_num = int(prefix_str)
+                # If the prefix (without the 96) is a valid stat, fix it
+                # e.g., "796" -> "7%", "796%" -> "7%", "1096" -> "10%"
+                if prefix_num in valid_stats:
+                    # Replace the entire match with + prefix + %
+                    return '+' + str(prefix_num) + '%'
+        
+        return full_match
+    
+    # Match: + followed by digits ending in 96, optionally followed by %, at word boundary or end of line/comma
+    # This will match patterns like: +396, +496, +696, +796, +996, +1096, +1296, +1396
+    # And also: +396%, +496%, +696%, +796%, +996%, +1096%, +1296%, +1396%
+    # But we only fix if removing the 96 gives a valid stat value
+    fixed = re.sub(r'\+\d+96%?(?=\s|$|,|%)', replace_ninety_six_error, line)
+    
+    return fixed
+
 def fix_missing_plus_sign(line):
     """
     Fix OCR errors where '+' sign is missing before percentages.
@@ -183,7 +265,7 @@ def fix_missing_plus_sign(line):
         (r'(All\s+Stats?|Allstats?|Alistats?|Alstats?)', 'ALL'),  # All stats variations
         (r'(Magic\s+ATT|MagicATT|Magic\s+A[ti]tack\s+Power|MagicA[ti]tackPower)', 'MATT'),  # Magic ATT (handles OCR error "Aitack", with or without space)
         (r'(A[ti]tack\s+Power|A[ti]tackPower)', 'ATT'),  # Attack Power (handles OCR error "Aitack", with or without space)
-        (r'(Boss\s+Damage|BossDamage)', 'BD'),  # Boss Damage (with or without space)
+        (r'([BGx]oss\s+Damage|[BGx]ossDamage|B[Gx]oss\s+Damage|B[Gx]ossDamage)', 'BD'),  # Boss Damage (with or without space, handles OCR errors where B is misread as G/x)
         (r'(Ign[aoe]r[ae]\s+Defense|Ign[aoe]r[ae]Defense)', 'IED'),  # Ignore Defense (handles OCR errors where 'o'→'a'/'e' and 'e'→'a'/'e', with or without space)
         (r'(Critical\s+Damage|CriticalDamage)', 'CD'),  # Critical Damage (with or without space)
         (r'(STR|DEX|INT|LUK)', 'STAT'),  # Single stat
@@ -298,6 +380,15 @@ def normalize_line(line):
     # First fix OCR percent errors (e.g., +95 -> +9%)
     line = fix_ocr_percent_errors(line)
     
+    # Fix OCR errors where % is misread as 96 (e.g., +796 -> +7%)
+    line = fix_ocr_percent_as_ninety_six_errors(line)
+    
+    # Fix OCR errors where % is misread as 9 (e.g., +49% -> +4%)
+    line = fix_ocr_percent_as_nine_errors(line)
+    
+    # Fix double %% (e.g., +3%% -> +3%)
+    line = re.sub(r'(\d+)%%+', r'\1%', line)
+    
     # Fix missing numbers in stat lines (e.g., "Luk +Luk%" -> "LUK +9%")
     line = fix_missing_numbers(line)
     
@@ -369,10 +460,10 @@ def matches_line_pattern(line, pattern_list):
     # For stat lines (STR, DEX, INT, LUK, ALL, ATT), use regex matching since they can have noise
     # Check if this looks like a stat line using regex (accept any numeric value)
     stat_patterns_to_check = {
-        "STR": [r'STR\s*:?\s*\+(\d+)%', r'STR\s*\+(\d+)%'],
-        "DEX": [r'DEX\s*:?\s*\+(\d+)%', r'DEX\s*\+(\d+)%'],
-        "INT": [r'INT\s*:?\s*\+(\d+)%', r'INT\s*\+(\d+)%'],
-        "LUK": [r'LUK\s*:?\s*\+(\d+)%', r'LUK\s*\+(\d+)%'],
+        "STR": [r'\bSTR\s*:?\s*\+(\d+)%', r'\bSTR\s*\+(\d+)%'],
+        "DEX": [r'\bDEX\s*:?\s*\+(\d+)%', r'\bDEX\s*\+(\d+)%'],
+        "INT": [r'\bINT\s*:?\s*\+(\d+)%', r'\bINT\s*\+(\d+)%'],
+        "LUK": [r'\bLUK\s*:?\s*\+(\d+)%', r'\bLUK\s*\+(\d+)%'],
         "ALL": [r'All\s+Stats\s*:?\s*\+(\d+)%', r'All\s+Stats\s*\+(\d+)%', r'All\s*:?\s*\+(\d+)%', r'Allstats\s*:?\s*\+(\d+)%', r'Allstats\s*\+(\d+)%', r'Alistats\s*:?\s*\+(\d+)%', r'Alistats\s*\+(\d+)%', r'Alstats\s*:?\s*\+(\d+)%', r'Alstats\s*\+(\d+)%'],
         "ATT": [r'(?<!Magic\s)ATT\s*:?\s*\+(\d+)%', r'(?<!Magic\s)ATT\s*\+(\d+)%', r'(?<!Magic\s)A[ti]tack\s+Power\s*:?\s*\+(\d+)%', r'(?<!Magic\s)A[ti]tack\s+Power\s*\+(\d+)%', r'(?<!Magic)A[ti]tackPower\s*:?\s*\+(\d+)%', r'(?<!Magic)A[ti]tackPower\s*\+(\d+)%']
     }
@@ -457,36 +548,42 @@ def set_lines(splitlines):
             if matches_line_pattern(splitlines[i], single_lines_list):
                 matched_indices.append(i)
         
-                # Also check for stat lines (STR, DEX, INT, LUK, ALL, ATT) using regex
-                # and other potential lines (BD, IED, etc.) using fuzzy matching
-                for i in range(len(splitlines)):
-                    if i not in matched_indices:
-                        line = splitlines[i]
-                        normalized = normalize_line(line)
-                        # Check if it looks like a stat line (STR, DEX, INT, LUK, ALL, ATT)
-                        # Use %+ to allow one or more % signs (handles OCR errors like "3%%" from "35%")
-                        if re.search(r'(STR|DEX|INT|LUK|All\s+Stats?|ATT|A[ti]tack\s+Power|A[ti]tackPower)\s*:?\s*\+?\d+%+', line, re.IGNORECASE):
-                            matched_indices.append(i)
-                        # Check if it looks like Boss Damage (with or without space)
-                        elif (re.search(r'Boss\s+Damage\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
-                              re.search(r'BossDamage\s*:?\s*\+?\d+%+', line, re.IGNORECASE)):
-                            matched_indices.append(i)
-                        # Check if it looks like IED (Ignore Defense) - exclude "chance to ignore" lines
-                        elif (re.search(r'Ign[aoe]r[ae]\s+Defense\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or 
-                              re.search(r'Ign[aoe]r[ae]Defense\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
-                              re.search(r'Attacks\s+ignore\s+\d+%\s+Monster', line, re.IGNORECASE)) and \
-                             not re.search(r'chance\s+to\s+ignore', line, re.IGNORECASE):
-                            matched_indices.append(i)
-                        # Check if it looks like Critical Damage (with or without space)
-                        elif (re.search(r'Critical\s+Damage\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
-                              re.search(r'CriticalDamage\s*:?\s*\+?\d+%+', line, re.IGNORECASE)):
-                            matched_indices.append(i)
-                        # Check if it looks like Item Drop Rate (with or without spaces)
-                        elif re.search(r'(Item|tem)\s*Drop\s*Rate\s*:?\s*\+?\d+%+', line, re.IGNORECASE):
-                            matched_indices.append(i)
-                        # Check if it looks like Magic ATT
-                        elif re.search(r'Magic\s+ATT\s*:?\s*\+?\d+%+', line, re.IGNORECASE):
-                            matched_indices.append(i)
+        # Also check for stat lines (STR, DEX, INT, LUK, ALL, ATT) using regex
+        # and other potential lines (BD, IED, etc.) using fuzzy matching
+        # Check "All Stats" patterns FIRST before STR to avoid false matches
+        for j in range(len(splitlines)):
+            if j not in matched_indices:
+                line = splitlines[j]
+                normalized = normalize_line(line)
+                # Check if it looks like "All Stats" FIRST (before STR) to avoid false matches
+                # Use %+ to allow one or more % signs (handles OCR errors like "3%%" from "35%")
+                if re.search(r'(All\s+Stats?|Allstats?|Alistats?|Alstats?)\s*:?\s*\+?\d+%+', line, re.IGNORECASE):
+                    matched_indices.append(j)
+                # Check if it looks like a stat line (STR, DEX, INT, LUK, ATT)
+                elif re.search(r'(STR|DEX|INT|LUK|ATT|A[ti]tack\s+Power|A[ti]tackPower)\s*:?\s*\+?\d+%+', line, re.IGNORECASE):
+                    matched_indices.append(j)
+                # Check if it looks like Boss Damage (with or without space, handles OCR errors where B is misread as G/x)
+                elif (re.search(r'[BGx]oss\s+Damage\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
+                      re.search(r'[BGx]ossDamage\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
+                      re.search(r'B[Gx]oss\s+Damage\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
+                      re.search(r'B[Gx]ossDamage\s*:?\s*\+?\d+%+', line, re.IGNORECASE)):
+                    matched_indices.append(j)
+                # Check if it looks like IED (Ignore Defense) - exclude "chance to ignore" lines
+                elif (re.search(r'Ign[aoe]r[ae]\s+Defense\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or 
+                      re.search(r'Ign[aoe]r[ae]Defense\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
+                      re.search(r'Attacks\s+ignore\s+\d+%\s+Monster', line, re.IGNORECASE)) and \
+                     not re.search(r'chance\s+to\s+ignore', line, re.IGNORECASE):
+                    matched_indices.append(j)
+                # Check if it looks like Critical Damage (with or without space)
+                elif (re.search(r'Critical\s+Damage\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
+                      re.search(r'CriticalDamage\s*:?\s*\+?\d+%+', line, re.IGNORECASE)):
+                    matched_indices.append(j)
+                # Check if it looks like Item Drop Rate (with or without spaces)
+                elif re.search(r'(Item|tem)\s*Drop\s*Rate\s*:?\s*\+?\d+%+', line, re.IGNORECASE):
+                    matched_indices.append(j)
+                # Check if it looks like Magic ATT
+                elif re.search(r'Magic\s+ATT\s*:?\s*\+?\d+%+', line, re.IGNORECASE):
+                    matched_indices.append(j)
         
         # If we found at least one matching line, use up to 3 lines
         if len(matched_indices) >= 1:
@@ -545,7 +642,7 @@ def set_lines(splitlines):
                 if i not in matched_indices and len(matched_indices) < 3:
                     line = splitlines[i]
                     # Check if it looks like a stat line or potential line
-                    if re.search(r'(STR|DEX|INT|LUK|All\s+Stats?|Allstats?|ATT|A[ti]tack\s+Power|A[ti]tackPower|Boss\s+Damage|BossDamage|Critical\s+Damage|CriticalDamage|(Item|tem)\s*Drop\s*Rate|Magic\s+ATT|MagicATT)\s*:?\s*\+?\d+%', line, re.IGNORECASE):
+                    if re.search(r'(STR|DEX|INT|LUK|All\s+Stats?|Allstats?|ATT|A[ti]tack\s+Power|A[ti]tackPower|[BGx]oss\s+Damage|[BGx]ossDamage|B[Gx]oss\s+Damage|B[Gx]ossDamage|Critical\s+Damage|CriticalDamage|(Item|tem)\s*Drop\s*Rate|Magic\s+ATT|MagicATT)\s*:?\s*\+?\d+%', line, re.IGNORECASE):
                         matched_indices.append(i)
                         if len(matched_indices) >= 3:
                             break

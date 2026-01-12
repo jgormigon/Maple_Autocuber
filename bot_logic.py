@@ -25,7 +25,7 @@ default_config = {
     "stopAtStatThreshold": False,
     "flexible_roll_check": {
         "enabled": False,
-        "stat_types": [],  # List of stat types: ["BD", "ATT", "MATT", "IED", "CD", "IA", "MESO"]
+        "stat_types": [],  # List of stat types: ["BD", "ATT", "MATT", "IED", "CD", "IA", "MESO", "SC"]
         "required_count": 2  # Number of matching lines required (1, 2, or 3)
     },
     "ocr_callback": None  # Callback function to update OCR results in GUI
@@ -437,8 +437,11 @@ class potential:
             return True
         # Use strict regex pattern matching (more reliable than fuzzy matching)
         # Only match if we see "Boss Damage" or "BossDamage" followed by a percentage
-        return bool(re.search(r'Boss\s+Damage\s*:?\s*\+?\d+%', line, re.IGNORECASE) or
-                   re.search(r'BossDamage\s*:?\s*\+?\d+%', line, re.IGNORECASE))
+        # Handles OCR errors where B is misread as G/x (e.g., GossDamage, xossDamage, BGossDamage)
+        return bool(re.search(r'[BGx]oss\s+Damage\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
+                   re.search(r'[BGx]ossDamage\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
+                   re.search(r'B[Gx]oss\s+Damage\s*:?\s*\+?\d+%+', line, re.IGNORECASE) or
+                   re.search(r'B[Gx]ossDamage\s*:?\s*\+?\d+%+', line, re.IGNORECASE))
     
     def _has_attack_power(self, line):
         """Check if line contains Attack Power (ATT) - does NOT include Magic ATT"""
@@ -551,6 +554,16 @@ class potential:
         # Spaces are optional to handle cases like "MesosObtained"
         return bool(re.search(r'\b(Meso|Mesos|Mes0|Mes\s+o)\s*(Obtained|Obtain3d)', line, re.IGNORECASE))
     
+    def _has_skill_cooldowns(self, line):
+        """Check if line contains Skill Cooldowns - handles -1 sec and -2 sec"""
+        if not line or line == "Trash":
+            return False
+        import re
+        # Match "Skill cooldowns -1 sec" or "Skill cooldowns -2 sec" with OCR variations
+        # Handles variations like: "Skill Cooldowns -1 sec", "SkillCooldowns-2sec", "Skill cooldowns-1 sec", etc.
+        return bool(re.search(r'Skill\s+[Cc]ooldowns?\s*:?\s*-[12]\s*sec', line, re.IGNORECASE) or
+                   re.search(r'Skill[Cc]ooldowns?\s*:?\s*-[12]\s*sec', line, re.IGNORECASE))
+    
     def _line_matches_stat_type(self, line, stat_type):
         """Check if a line matches a given stat type"""
         stat_type_upper = stat_type.upper()
@@ -568,6 +581,8 @@ class potential:
             return self._has_item_drop_rate(line)
         elif stat_type_upper == "MESO" or stat_type_upper == "MESO OBTAINED":
             return self._has_meso_obtained(line)
+        elif stat_type_upper == "SC" or stat_type_upper == "SKILL COOLDOWNS":
+            return self._has_skill_cooldowns(line)
         return False
     
     def check_roll_flexible(self, stat_types, required_count):
@@ -763,37 +778,41 @@ class potential:
             current_roll = (original_lines, normalized_lines, current_stats)
             
             self.last_three_rolls.append(current_roll)
-            if len(self.last_three_rolls) > 3:
-                self.last_three_rolls.pop(0)  # Keep only last 3
+            if len(self.last_three_rolls) > 5:
+                self.last_three_rolls.pop(0)  # Keep only last 5
             
-            # If we have 3 rolls and they're all the same, cubes are used up
+            # If we have 5 rolls and they're all the same, cubes are used up
             # Compare based on extracted stats, not raw text, to handle OCR variations
-            if len(self.last_three_rolls) == 3:
+            if len(self.last_three_rolls) == 5:
                 roll1_orig, roll1_norm, roll1_stats = self.last_three_rolls[0]
                 roll2_orig, roll2_norm, roll2_stats = self.last_three_rolls[1]
                 roll3_orig, roll3_norm, roll3_stats = self.last_three_rolls[2]
+                roll4_orig, roll4_norm, roll4_stats = self.last_three_rolls[3]
+                roll5_orig, roll5_norm, roll5_stats = self.last_three_rolls[4]
                 
-                # Check if all three rolls have valid stats (not garbage OCR)
+                # Check if all five rolls have valid stats (not garbage OCR)
                 roll1_valid = self._has_valid_stats_in_roll(roll1_stats, roll1_orig)
                 roll2_valid = self._has_valid_stats_in_roll(roll2_stats, roll2_orig)
                 roll3_valid = self._has_valid_stats_in_roll(roll3_stats, roll3_orig)
+                roll4_valid = self._has_valid_stats_in_roll(roll4_stats, roll4_orig)
+                roll5_valid = self._has_valid_stats_in_roll(roll5_stats, roll5_orig)
                 
-                all_rolls_valid = roll1_valid and roll2_valid and roll3_valid
+                all_rolls_valid = roll1_valid and roll2_valid and roll3_valid and roll4_valid and roll5_valid
                 
                 # Only check for same stats if all three rolls have valid stats (not garbage)
                 if all_rolls_valid:
                     # Check if stats are the same (primary check - most reliable)
-                    stats_match = (roll1_stats == roll2_stats == roll3_stats)
+                    stats_match = (roll1_stats == roll2_stats == roll3_stats == roll4_stats == roll5_stats)
                     
                     if stats_match:
-                        # Same valid stats 3 times in a row - cubes are used up
+                        # Same valid stats 5 times in a row - cubes are used up
                         self.stop_bot = True
                         lines_str = f"{self.line1}, {self.line2}"
                         if self.line3 and self.line3 != "Trash":
                             lines_str += f", {self.line3}"
-                        result_text = f"{lines_str}    STOP (Cubes used up - same stats 3 times in a row)"
+                        result_text = f"{lines_str}    STOP (Cubes used up - same stats 5 times in a row)"
                         self._send_ocr_result(result_text)
-                        print("Cubes used up - same stats detected 3 times in a row. Stopping bot.")
+                        print("Cubes used up - same stats detected 5 times in a row. Stopping bot.")
                         return
             
             # Stat threshold checking (if enabled)

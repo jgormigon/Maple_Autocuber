@@ -43,9 +43,10 @@ def press_reset_spacebar():
     
     # Press Enter 5 times quickly to ensure it registers
     for _ in range(5):
-        pyautogui.press('enter')
+        # pyautogui.press('enter')
+        keyboard.press_and_release('space')
         time.sleep(0.03)  # Reduced from 0.05s - still enough for key press to register
-    
+    time.sleep(0.5)
     return True
 
 
