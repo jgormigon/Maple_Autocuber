@@ -1,17 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec file for Maple Autocuber
+PyInstaller spec file
 """
 
 block_cipher = None
 
 a = Analysis(
-    ['botUI.py'],
+    ['src/botUI.py'],
     pathex=[],
     binaries=[],
     datas=[
         ('templates', 'templates'),  # Include templates folder (reset_button.jpg)
-        ('crop_config.py', '.'),  # Include config file
         ('tesseract', 'tesseract'),  # Include bundled Tesseract OCR
     ],
     hiddenimports=[
@@ -19,7 +18,15 @@ a = Analysis(
         'win32api',
         'win32con',
         'pytesseract',
-        'tesseract_config',  # Tesseract configuration module
+        'src.tesseract_config',  # Tesseract configuration module
+        'src.crop_config',  # Crop configuration module
+        'src.bot_logic',
+        'src.translate_ocr_results',
+        'src.macro_controls',
+        'src.image_finder',
+        'src.image_processing',
+        'src.windowcapture',
+        'src.auto_detect_crop',
         'cv2',
         'numpy',
         'PIL',
@@ -54,7 +61,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='MapleAutocuber',
+    name='Aincrad',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

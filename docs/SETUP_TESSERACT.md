@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Maple Autocuber executable bundles a portable version of Tesseract OCR so users don't need to install it separately.
+The Aincrad executable bundles a portable version of Tesseract OCR so users don't need to install it separately.
 
 ## Requirements
 
@@ -23,7 +23,7 @@ Download a portable version of Tesseract OCR for Windows. You can:
 
 The folder structure should be:
 ```
-Maple_Autocuber/
+Aincrad/
   tesseract/
     tesseract.exe          # Main executable
     tessdata/              # Language data folder

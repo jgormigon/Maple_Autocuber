@@ -4,9 +4,9 @@ Test script to see what lines OCR reads from the crop region
 import cv2 as cv
 import sys
 import os
-from auto_detect_crop import detect_potential_region
-from translate_ocr_results import get_lines, split_lines, process_lines
-from crop_config import OFFSET_X, OFFSET_ABOVE
+from src.auto_detect_crop import detect_potential_region
+from src.translate_ocr_results import get_lines, split_lines, process_lines
+from src.crop_config import OFFSET_X, OFFSET_ABOVE
 import pytesseract
 
 def test_crop_ocr(image_path, debug=True):
@@ -153,7 +153,7 @@ def test_crop_ocr(image_path, debug=True):
         print(f"  Line 3: {line3}")
     
     # Calculate and show total stats
-    from translate_ocr_results import get_stat_from_line
+    from src.translate_ocr_results import get_stat_from_line
     stats = {"STR": 0, "DEX": 0, "INT": 0, "LUK": 0, "ALL": 0, "ATT": 0}
     for line in [line1, line2, line3]:
         if line and line != "Trash":

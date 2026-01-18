@@ -28,7 +28,7 @@ chmod +x build.sh
 
 ## Output
 
-The executable will be in `dist/MapleAutocuber.exe` (Windows) or `dist/MapleAutocuber` (Linux/Mac)
+The executable will be in `dist/Aincrad.exe` (Windows) or `dist/Aincrad` (Linux/Mac)
 
 ## Important Notes
 

@@ -40,7 +40,7 @@ def get_potlines(window_name=None, debug=False, crop_region=None, test_image_pat
     
     if should_recreate:
         try:
-            from image_finder import potlines
+            from src.image_finder import potlines
             if debug:
                 print(f"[DEBUG] Recreating potlines instance - changes detected:")
                 print(f"  Current test_image: {current_test_image}, New test_image: {test_image_path}")

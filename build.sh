@@ -1,7 +1,7 @@
 #!/bin/bash
-# Build script for Maple Autocuber (Linux/Mac)
+# Build script
 
-echo "Building Maple Autocuber executable..."
+echo "Building Aincrad executable..."
 echo
 
 # Check if PyInstaller is installed
@@ -29,6 +29,6 @@ fi
 
 echo
 echo "Build complete! Executable is in the 'dist' folder."
-echo "File: dist/MapleAutocuber"
+echo "File: dist/Aincrad"
 echo
 

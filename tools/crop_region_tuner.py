@@ -11,7 +11,7 @@ import threading
 
 # Try to import config, if it fails we'll use defaults
 try:
-    from crop_config import OFFSET_X, OFFSET_ABOVE, STAT_WIDTH, STAT_HEIGHT
+    from src.crop_config import OFFSET_X, OFFSET_ABOVE, STAT_WIDTH, STAT_HEIGHT
 except ImportError:
     OFFSET_X = 200
     OFFSET_ABOVE = 200

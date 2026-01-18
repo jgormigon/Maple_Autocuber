@@ -3,12 +3,12 @@ import cv2 as cv
 import numpy as np
 import os
 import time
-from windowcapture import WindowCapture
-from image_processing import image_process
-import tesseract_config  # Configure Tesseract path before importing pytesseract
+from src.windowcapture import WindowCapture
+from src.image_processing import image_process
+import src.tesseract_config as tesseract_config  # Configure Tesseract path before importing pytesseract
 import pytesseract
 from PIL import Image
-from auto_detect_crop import detect_potential_region
+from src.auto_detect_crop import detect_potential_region
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 # Default window name - can be overridden when creating potlines instance

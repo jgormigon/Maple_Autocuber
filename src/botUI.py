@@ -7,7 +7,7 @@ import hashlib
 import secrets
 import keyboard
 import tesseract_config  # Configure Tesseract before importing bot_logic
-from bot_logic import run_bot, default_config, bot_stop_event
+from src.bot_logic import run_bot, default_config, bot_stop_event
 
 # Modern color scheme - removed blue accent, using purple/teal instead
 COLORS = {
@@ -801,7 +801,7 @@ class BotGUI:
         finally:
             # Save debug image and clear cache when bot stops
             try:
-                from translate_ocr_results import get_potlines, clear_potlines_cache
+                from src.translate_ocr_results import get_potlines, clear_potlines_cache
                 potlines_instance = get_potlines()
                 if potlines_instance:
                     potlines_instance.save_debug_image()

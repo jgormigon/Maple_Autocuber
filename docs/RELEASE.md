@@ -6,7 +6,7 @@
 
 Make sure you have the portable Tesseract OCR in `tesseract/` folder at project root:
 ```
-Maple_Autocuber/
+Aincrad/
   tesseract/
     tesseract.exe
     tessdata/
@@ -21,7 +21,7 @@ build.bat
 ```
 
 Verify that:
-- The executable is created in `dist/MapleAutocuber.exe`
+- The executable is created in `dist/Aincrad.exe`
 - The executable runs without errors
 - OCR functionality works (Tesseract is detected)
 
@@ -48,7 +48,7 @@ Verify that:
    ```
 
 2. Create a release archive:
-   - Zip `dist/MapleAutocuber.exe` (Tesseract is already bundled in the .exe)
+   - Zip `dist/Aincrad.exe` (Tesseract is already bundled in the .exe)
    - Or use the release folder created by the workflow
 
 3. Create a GitHub Release manually:

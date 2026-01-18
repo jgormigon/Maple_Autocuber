@@ -1,5 +1,5 @@
-from translate_ocr_results import process_lines, get_stat_from_line, get_all_stats_from_line, extract_stat_value, get_potlines, matches_line_pattern
-from macro_controls import time_to_start , click, press_reset_spacebar
+from src.translate_ocr_results import process_lines, get_stat_from_line, get_all_stats_from_line, extract_stat_value, get_potlines, matches_line_pattern
+from src.macro_controls import time_to_start , click, press_reset_spacebar
 import keyboard
 import time
 import threading
@@ -722,7 +722,7 @@ class potential:
         self.last_three_rolls = []
         
         # Clear cached potlines instance to ensure fresh start
-        from translate_ocr_results import clear_potlines_cache
+        from src.translate_ocr_results import clear_potlines_cache
         clear_potlines_cache()
         
         # Check if current potential already satisfies threshold before starting

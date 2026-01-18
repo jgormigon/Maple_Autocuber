@@ -1,6 +1,6 @@
 # Tools Directory
 
-This directory contains helper scripts and utilities for the Maple Autocuber bot.
+This directory contains helper scripts and utilities.
 
 ## Files
 

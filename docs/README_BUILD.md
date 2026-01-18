@@ -1,6 +1,6 @@
-# Building Maple Autocuber Executable
+# Building Aincrad Executable
 
-This guide explains how to build the Maple Autocuber bot into a standalone executable (.exe) file.
+This guide explains how to build the Aincrad bot into a standalone executable (.exe) file.
 
 ## Prerequisites
 
@@ -47,8 +47,8 @@ pyinstaller build_exe.spec
 ## Output
 
 The executable will be created in the `dist` folder:
-- **Windows**: `dist\MapleAutocuber.exe`
-- **Linux/Mac**: `dist/MapleAutocuber`
+- **Windows**: `dist\Aincrad.exe`
+- **Linux/Mac**: `dist/Aincrad`
 
 ## Important Notes
 

@@ -45,11 +45,11 @@ jobs:
           
       - name: Verify executable
         run: |
-          if (-not (Test-Path "dist\MapleAutocuber.exe")) {
+          if (-not (Test-Path "dist\Aincrad.exe")) {
             Write-Host "ERROR: Executable not found!"
             exit 1
           }
-          Write-Host "Executable created successfully: dist\MapleAutocuber.exe"
+          Write-Host "Executable created successfully: dist\Aincrad.exe"
           
       - name: Get version from tag
         id: get_version
@@ -76,7 +76,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path "release" | Out-Null
           
           # Copy executable
-          Copy-Item "dist\MapleAutocuber.exe" -Destination "release\MapleAutocuber.exe"
+          Copy-Item "dist\Aincrad.exe" -Destination "release\Aincrad.exe"
           
           # Copy tesseract folder (should already be bundled, but include separately for reference)
           if (Test-Path "dist\tesseract") {
@@ -85,7 +85,7 @@ jobs:
           
           # Create README for release
           $readmeLines = @(
-            "# Maple Autocuber Release",
+            "# Aincrad Release",
             "",
             "Version: $version",
             "Build Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')",
@@ -93,7 +93,7 @@ jobs:
             "## Installation",
             "",
             "1. Extract all files to a folder",
-            "2. Run MapleAutocuber.exe",
+            "2. Run Aincrad.exe",
             "3. No additional installation required - Tesseract OCR is bundled!",
             "",
             "## Notes",
@@ -104,21 +104,21 @@ jobs:
             "",
             "## Files",
             "",
-            "- MapleAutocuber.exe - Main executable",
+            "- Aincrad.exe - Main executable",
             "- tesseract/ - Bundled Tesseract OCR (already included in .exe, this is for reference)"
           )
           $readmeLines -join "`r`n" | Out-File -FilePath "release\README.txt" -Encoding UTF8
           
           # Create zip archive
-          Compress-Archive -Path "release\*" -DestinationPath "MapleAutocuber-$version.zip" -Force
-          Write-Host "Created archive: MapleAutocuber-$version.zip"
+          Compress-Archive -Path "release\*" -DestinationPath "Aincrad-$version.zip" -Force
+          Write-Host "Created archive: Aincrad-$version.zip"
           
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: MapleAutocuber-${{ steps.get_version.outputs.version }}${{ steps.get_version_commit.outputs.version }}
+          name: Aincrad-${{ steps.get_version.outputs.version }}${{ steps.get_version_commit.outputs.version }}
           path: |
-            MapleAutocuber-*.zip
+            Aincrad-*.zip
             release/
           retention-days: 30
         
@@ -127,14 +127,14 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            MapleAutocuber-*.zip
+            Aincrad-*.zip
           name: Release ${{ steps.get_version.outputs.version }}
           body: |
-            ## Maple Autocuber ${{ steps.get_version.outputs.version }}
+            ## Aincrad ${{ steps.get_version.outputs.version }}
             
             ### Installation
             
-            Download `MapleAutocuber-*.zip`, extract the archive, and run `MapleAutocuber.exe`.
+            Download `Aincrad-*.zip`, extract the archive, and run `Aincrad.exe`.
             
             ### Features
             

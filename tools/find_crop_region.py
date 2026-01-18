@@ -4,9 +4,9 @@ Tool to find the optimal crop region for the Potential lines section
 import cv2 as cv
 import numpy as np
 import pytesseract
-from crop_config import OFFSET_X, OFFSET_ABOVE, STAT_WIDTH, STAT_HEIGHT
+from src.crop_config import OFFSET_X, OFFSET_ABOVE, STAT_WIDTH, STAT_HEIGHT
 from PIL import Image
-from auto_detect_crop import detect_potential_region as auto_detect
+from src.auto_detect_crop import detect_potential_region as auto_detect
 
 def find_potential_region(image_path, debug=True):
     """

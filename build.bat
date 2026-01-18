@@ -1,5 +1,5 @@
 @echo off
-echo Building Maple Autocuber executable...
+echo Building Aincrad executable...
 echo.
 
 REM Check if PyInstaller is installed
@@ -40,7 +40,7 @@ if errorlevel 1 (
 
 echo.
 echo Build complete! Executable is in the 'dist' folder.
-echo File: dist\MapleAutocuber.exe
+echo File: dist\Aincrad.exe
 echo.
 pause
 

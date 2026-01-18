@@ -3,10 +3,10 @@ Automatic detection of Potential region from screenshots
 """
 import cv2 as cv
 import numpy as np
-import tesseract_config  # Configure Tesseract path before importing pytesseract
+import src.tesseract_config as tesseract_config  # Configure Tesseract path before importing pytesseract
 import pytesseract
 import os
-from crop_config import OFFSET_X, OFFSET_ABOVE, STAT_WIDTH, STAT_HEIGHT, BRIGHT_OFFSET_X, BRIGHT_OFFSET_ABOVE, BRIGHT_STAT_WIDTH, BRIGHT_STAT_HEIGHT
+from src.crop_config import OFFSET_X, OFFSET_ABOVE, STAT_WIDTH, STAT_HEIGHT, BRIGHT_OFFSET_X, BRIGHT_OFFSET_ABOVE, BRIGHT_STAT_WIDTH, BRIGHT_STAT_HEIGHT
 
 def find_reset_button_template(image, template_path=None, debug=False):
     """
@@ -21,9 +21,11 @@ def find_reset_button_template(image, template_path=None, debug=False):
         Tuple (x, y, width, height) of Reset button, or None if not found
     """
     if template_path is None:
-        # Try to find template in templates folder
+        # Try to find template in templates folder (project root)
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        template_path = os.path.join(script_dir, 'templates', 'reset_button')
+        # Templates are in project root, not in src/
+        project_root = os.path.dirname(script_dir)
+        template_path = os.path.join(project_root, 'templates', 'reset_button')
     
     if not os.path.exists(template_path):
         if debug:
@@ -108,9 +110,11 @@ def is_reset_button_unavailable(image, template_path=None, debug=False):
         True if unavailable template is found (button is grayed out), False otherwise
     """
     if template_path is None:
-        # Try to find template in templates folder
+        # Try to find template in templates folder (project root)
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        template_path = os.path.join(script_dir, 'templates', 'reset_button_unavailable')
+        # Templates are in project root, not in src/
+        project_root = os.path.dirname(script_dir)
+        template_path = os.path.join(project_root, 'templates', 'reset_button_unavailable')
     
     template_exists = os.path.exists(template_path)
     template_match_result = None
