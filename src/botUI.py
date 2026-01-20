@@ -6,7 +6,7 @@ import win32gui
 import hashlib
 import secrets
 import keyboard
-import tesseract_config  # Configure Tesseract before importing bot_logic
+import src.tesseract_config  # Configure Tesseract before importing bot_logic
 from src.bot_logic import run_bot, default_config, bot_stop_event
 
 # Modern color scheme - removed blue accent, using purple/teal instead
