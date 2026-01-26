@@ -535,7 +535,7 @@ class potential:
         # Handles variations like: "Item Drop Rate +20%", "ltemDropRate+20%", "tem Dr0p Rat3", etc.
         # No % check to handle cases where % is misread by OCR
         # Spaces are optional to handle cases like "ltemDropRate"
-        return bool(re.search(r'\b(Item|tem|Itern|ltem)\s*(Drop|Dr0p)\s*(Rate|Rat3)', line, re.IGNORECASE))
+        return bool(re.search(r'\b(Item|tem|Itern|ltem|Itam|ltam)\s*(Drop|Dr0p|Drap)\s*(Rate|Rat3)', line, re.IGNORECASE))
     
     def _has_meso_obtained(self, line):
         """Check if line contains Meso Obtained - gracefully handles OCR errors"""
