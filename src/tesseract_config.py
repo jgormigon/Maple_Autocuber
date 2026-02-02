@@ -24,8 +24,10 @@ def wrap_tesseract_config(config: str) -> str:
     """
     td = get_tessdata_dir()
     if td and config is not None and "--tessdata-dir" not in config:
-        # Quote to survive spaces in paths (Windows).
-        return f'--tessdata-dir "{td}" {config}'.strip()
+        # IMPORTANT: Don't embed quotes here.
+        # In PyInstaller builds, pytesseract/tesseract can end up receiving the quotes literally,
+        # producing paths like:  "\"C:\\...\\tessdata\"/eng.traineddata" and failing to load eng.
+        return f'--tessdata-dir {td} {config}'.strip()
     return config
 
 def configure_tesseract():
