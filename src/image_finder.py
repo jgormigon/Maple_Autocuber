@@ -2,6 +2,7 @@ from concurrent.futures import process
 import cv2 as cv
 import numpy as np
 import os
+import sys
 import time
 from src.windowcapture import WindowCapture
 from src.image_processing import image_process
@@ -10,7 +11,15 @@ import pytesseract
 from PIL import Image
 from src.auto_detect_crop import detect_potential_region
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+# Avoid changing CWD in frozen/PyInstaller builds: the module path may not exist on disk.
+# In dev runs we keep the historical behavior (relative paths), but guard against failures.
+if not getattr(sys, "frozen", False):
+    try:
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        if os.path.isdir(module_dir):
+            os.chdir(module_dir)
+    except Exception:
+        pass
 # Default window name - can be overridden when creating potlines instance
 DEFAULT_WINDOW_NAME = "Maplestory"
 

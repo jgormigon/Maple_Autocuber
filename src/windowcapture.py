@@ -2,6 +2,7 @@ import imghdr
 import cv2 as cv
 import numpy as np
 import os
+import sys
 from time import time
 import win32gui, win32ui, win32con
 import pyautogui
@@ -13,9 +14,15 @@ try:
 except ImportError:
     MSS_AVAILABLE = False
 
-# Change the working directory to the folder this script is in.
-# Doing this because I'll be putting the files from each video in their own folder on GitHub
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+# Avoid changing CWD in frozen/PyInstaller builds: the module path may not exist on disk.
+# In dev runs we keep the historical behavior (relative paths), but guard against failures.
+if not getattr(sys, "frozen", False):
+    try:
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        if os.path.isdir(module_dir):
+            os.chdir(module_dir)
+    except Exception:
+        pass
 
 
 
