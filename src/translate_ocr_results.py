@@ -3,6 +3,16 @@ import re
 # Lazy import to avoid errors during module import
 _potlines_instance = None
 _current_window_name = None
+_last_ocr_error = None
+
+def set_last_ocr_error(message: str):
+    """Store the last OCR-related error message for UI/debugging."""
+    global _last_ocr_error
+    _last_ocr_error = str(message) if message is not None else None
+
+def get_last_ocr_error():
+    """Return the last OCR-related error message (or None)."""
+    return _last_ocr_error
 
 def clear_potlines_cache():
     """Clear the cached potlines instance - call this when starting a new bot run"""
@@ -105,6 +115,7 @@ def get_lines(window_name=None, debug=False, crop_region=None, test_image_path=N
             print(f"[DEBUG] Raw OCR text: {repr(lines)}")
         return lines
     except Exception as e:
+        set_last_ocr_error(f"Error getting OCR lines: {e}")
         print(f"Error getting OCR lines: {e}")
         if debug:
             import traceback
@@ -763,10 +774,13 @@ def process_lines(window_name=None, debug=False, crop_region=None, test_image_pa
             return potential_lines[0], potential_lines[1], potential_lines[2]
         return "Trash", "Trash", "Trash"
     except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        set_last_ocr_error(f"Error processing lines: {e}\n{tb}")
         print(f"Error processing lines: {e}")
         import traceback
         traceback.print_exc()
-        return "Trash", "Trash"
+        return "Trash", "Trash", "Trash"
 
 #print(process_lines())
 #print(process_lines())

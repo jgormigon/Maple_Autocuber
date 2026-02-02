@@ -282,7 +282,8 @@ class potlines:
             ]
             for config, desc in raw_configs:
                 try:
-                    test_result = pytesseract.image_to_string(raw_gray, config=config)
+                    ocr_config = tesseract_config.wrap_tesseract_config(config)
+                    test_result = pytesseract.image_to_string(raw_gray, config=ocr_config)
                     if test_result and len(test_result.strip()) > len(raw_result.strip()):
                         raw_result = test_result
                         if debug:
@@ -290,6 +291,11 @@ class potlines:
                         if len(raw_result.strip()) > 2:
                             break
                 except Exception as e:
+                    try:
+                        from src.translate_ocr_results import set_last_ocr_error
+                        set_last_ocr_error(f"Tesseract OCR failed ({desc}): {e}")
+                    except Exception:
+                        pass
                     if debug:
                         print(f"[DEBUG] Error with {desc}: {e}")
                     continue
@@ -325,7 +331,8 @@ class potlines:
                 result = ""
                 for psm_config, desc in psm_configs:
                     try:
-                        test_result = pytesseract.image_to_string(self.image, config=psm_config)
+                        ocr_config = tesseract_config.wrap_tesseract_config(psm_config)
+                        test_result = pytesseract.image_to_string(self.image, config=ocr_config)
                         if test_result and len(test_result.strip()) > len(result.strip()):
                             result = test_result
                             if debug and result.strip():
@@ -333,7 +340,12 @@ class potlines:
                             # Early exit if we get a good result
                             if result and len(result.strip()) > 2:
                                 break
-                    except:
+                    except Exception as e:
+                        try:
+                            from src.translate_ocr_results import set_last_ocr_error
+                            set_last_ocr_error(f"Tesseract OCR failed ({desc}): {e}")
+                        except Exception:
+                            pass
                         continue
                 
                 # Check if result has meaningful content (more than just 1-2 characters)

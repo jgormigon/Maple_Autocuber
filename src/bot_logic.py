@@ -62,9 +62,34 @@ class potential:
         auto_detect_crop = config.get("auto_detect_crop", False)
         cube_type = config.get("cube_type", "Glowing")
         lines = process_lines(window_name, debug=False, crop_region=crop_region, test_image_path=test_image_path, auto_detect_crop=auto_detect_crop, cube_type=cube_type)
-        self.line1 = lines[0]
-        self.line2 = lines[1]
-        self.line3 = lines[2] if len(lines) > 2 else "Trash"
+        # Be defensive: process_lines() should return a 3-tuple, but guard anyway.
+        self.line1 = lines[0] if isinstance(lines, (list, tuple)) and len(lines) > 0 else "Trash"
+        self.line2 = lines[1] if isinstance(lines, (list, tuple)) and len(lines) > 1 else "Trash"
+        self.line3 = lines[2] if isinstance(lines, (list, tuple)) and len(lines) > 2 else "Trash"
+
+        # If OCR completely failed, stop immediately and surface the underlying error if available.
+        if self.line1 == "Trash" and self.line2 == "Trash":
+            try:
+                from src.translate_ocr_results import get_last_ocr_error
+                last_err = get_last_ocr_error()
+            except Exception:
+                last_err = None
+            try:
+                import pytesseract
+                tcmd = getattr(pytesseract.pytesseract, "tesseract_cmd", None)
+            except Exception:
+                tcmd = None
+            try:
+                import src.tesseract_config as tcfg
+                tessdata_dir = tcfg.get_tessdata_dir()
+            except Exception:
+                tessdata_dir = None
+
+            details = last_err or f"tesseract_cmd={tcmd}, tessdata_dir={tessdata_dir}"
+            error_text = f"OCR ERROR: got Trash, Trash. Stopping bot. Details: {details}"
+            self._send_ocr_result(error_text)
+            self.stop_bot = True
+            bot_stop_event.set()
     
     def get_stat_values(self):
         """
